@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes');
 const inmuebleRoutes = require('./routes/inmueble.routes');
 const contratoRoutes = require('./routes/contrato.routes');
 const pagoRoutes = require('./routes/pago.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 // Crear aplicación Express
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/inmuebles', inmuebleRoutes);
 app.use('/api/contratos', contratoRoutes);
 app.use('/api/pagos', pagoRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3001;
