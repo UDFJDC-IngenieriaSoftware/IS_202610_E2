@@ -70,3 +70,37 @@ CREATE TABLE pagos (
     id_contrato INTEGER REFERENCES contratos(id_contrato)
 );
 
+-- Tabla ESTADOS_PAGO
+CREATE TABLE estados_pago (
+    cod_estado_pago SERIAL PRIMARY KEY,
+    nombre_estado VARCHAR(50) NOT NULL
+);
+
+INSERT INTO estados_pago (nombre_estado) VALUES 
+('Pendiente'),
+('Pagado'),
+('Vencido');
+
+-- Tabla ESTADOS_CONTRATO
+CREATE TABLE estados_contrato (
+    cod_estado_contrato SERIAL PRIMARY KEY,
+    nombre_estado VARCHAR(50) NOT NULL
+);
+
+INSERT INTO estados_contrato (nombre_estado) VALUES 
+('Activo'),
+('Finalizado'),
+('Cancelado');
+
+-- Tabla TIPOS_INMUEBLE
+CREATE TABLE tipos_inmueble (
+    cod_tipo_inmueble SERIAL PRIMARY KEY,
+    nombre_tipo VARCHAR(50) NOT NULL
+);
+
+INSERT INTO tipos_inmueble (nombre_tipo) VALUES 
+('Apartamento'),
+('Casa'),
+('Local'),
+('Apartaestudio'),
+('Finca');
