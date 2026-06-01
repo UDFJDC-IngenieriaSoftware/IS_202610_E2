@@ -1,22 +1,59 @@
-const express = require("express");
-const cors = require("cors");
-const sequelize = require("./config/database"); // <--- Importamos la conexión
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 
+const { sequelize } = require('./config/database');
+
+// Importar rutas
+const authRoutes = require('./routes/auth.routes');
+const inmuebleRoutes = require('./routes/inmueble.routes');
+const contratoRoutes = require('./routes/contrato.routes');
+const pagoRoutes = require('./routes/pago.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+
+// Crear aplicación Express
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Sincronizar modelos con la base de datos (Laura podrá usar esto luego)
-sequelize.sync({ force: false }) // force: false evita borrar los datos cada vez que reinicias
-  .then(() => console.log("Tablas sincronizadas"))
-  .catch(err => console.log("Error al sincronizar:", err));
-
-app.get("/", (req, res) => {
-  res.send("API de Arriendos360 funcionando y conectada a la BD 🚀");
+// Ruta de prueba
+app.get('/', (req, res) => {
+    res.json({ 
+        mensaje: '🏠 API Arriendos360 funcionando',
+        version: '1.0.0',
+        endpoints: {
+            auth: '/api/auth',
+            inmuebles: '/api/inmuebles',
+            contratos: '/api/contratos',
+            pagos: '/api/pagos'
+        }
+    });
 });
 
+// Usar rutas
+app.use('/api/auth', authRoutes);
+app.use('/api/inmuebles', inmuebleRoutes);
+app.use('/api/contratos', contratoRoutes);
+app.use('/api/pagos', pagoRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// Puerto
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
+
+// Iniciar servidor
+const iniciarServidor = async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('✅ Conexión a PostgreSQL exitosa');
+        
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('❌ Error de conexión:', error);
+    }
+};
+
+iniciarServidor();
