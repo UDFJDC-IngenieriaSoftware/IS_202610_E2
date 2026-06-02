@@ -23,21 +23,28 @@ const obtenerIngresos = async (req, res) => {
     }
 };
 
-// Obtener pagos en mora (vencidos sin pagar)
+// Obtener pagos en mora (vencidos o pendientes con fecha pasada)
 const obtenerMora = async (req, res) => {
     try {
         const hoy = new Date();
         
         const pagosEnMora = await Pago.findAll({
             where: {
-                estado: 1, // 1 = Pendiente
-                mes_correspondiente: { [Sequelize.Op.lt]: hoy }
+                [Sequelize.Op.or]: [
+                    { 
+                        estado: 1, // Pendiente
+                        mes_correspondiente: { [Sequelize.Op.lt]: hoy }
+                    },
+                    { estado: 3 } // Vencido
+                ]
             },
             include: [{ model: Contrato }]
         });
         
         const totalMora = pagosEnMora.reduce((sum, pago) => {
-            return sum + parseFloat(pago.saldo_pendiente || pago.monto_total);
+            const pendiente = parseFloat(pago.saldo_pendiente);
+            const total = parseFloat(pago.monto_total);
+            return sum + (pendiente > 0 ? pendiente : total);
         }, 0);
         
         res.json({

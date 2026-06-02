@@ -1,3 +1,4 @@
+const { sequelize } = require('../config/database');
 const Contrato = require('../models/Contrato');
 const Inmueble = require('../models/Inmueble');
 const Inquilino = require('../models/Inquilino');
@@ -40,20 +41,26 @@ const obtenerPorId = async (req, res) => {
 
 // Crear contrato
 const crear = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
-        const nuevoContrato = await Contrato.create(req.body);
+        const nuevoContrato = await Contrato.create(req.body, { transaction: t });
         
         // Actualizar estado del inmueble a "arrendado"
         await Inmueble.update(
             { estado_ocupacion: 'arrendado' },
-            { where: { id_inmueble: req.body.id_inmueble } }
+            { 
+                where: { id_inmueble: req.body.id_inmueble },
+                transaction: t 
+            }
         );
         
+        await t.commit();
         res.status(201).json({ 
             mensaje: 'Contrato creado exitosamente', 
             contrato: nuevoContrato 
         });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ mensaje: 'Error al crear contrato', error: error.message });
     }
 };
@@ -77,25 +84,32 @@ const actualizar = async (req, res) => {
 
 // Finalizar contrato
 const finalizar = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
         const contrato = await Contrato.findByPk(id);
         
         if (!contrato) {
+            await t.rollback();
             return res.status(404).json({ mensaje: 'Contrato no encontrado' });
         }
         
         // Cambiar estado a finalizado (2)
-        await contrato.update({ estado: 2 });
+        await contrato.update({ estado: 2 }, { transaction: t });
         
         // Liberar inmueble
         await Inmueble.update(
             { estado_ocupacion: 'disponible' },
-            { where: { id_inmueble: contrato.id_inmueble } }
+            { 
+                where: { id_inmueble: contrato.id_inmueble },
+                transaction: t 
+            }
         );
         
+        await t.commit();
         res.json({ mensaje: 'Contrato finalizado', contrato });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ mensaje: 'Error al finalizar contrato', error: error.message });
     }
 };

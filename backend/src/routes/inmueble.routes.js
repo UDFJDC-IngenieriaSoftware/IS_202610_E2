@@ -7,20 +7,21 @@ const {
     actualizar, 
     eliminar 
 } = require('../controllers/inmueble.controller');
+const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
 
 // GET /api/inmuebles
-router.get('/', obtenerTodos);
+router.get('/', verificarToken, obtenerTodos);
 
 // GET /api/inmuebles/:id
-router.get('/:id', obtenerPorId);
+router.get('/:id', verificarToken, obtenerPorId);
 
 // POST /api/inmuebles
-router.post('/', crear);
+router.post('/', verificarToken, esPropietario, crear);
 
 // PUT /api/inmuebles/:id
-router.put('/:id', actualizar);
+router.put('/:id', verificarToken, esPropietario, actualizar);
 
 // DELETE /api/inmuebles/:id
-router.delete('/:id', eliminar);
+router.delete('/:id', verificarToken, esPropietario, eliminar);
 
 module.exports = router;
