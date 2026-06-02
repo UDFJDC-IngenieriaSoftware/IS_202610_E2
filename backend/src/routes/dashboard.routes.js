@@ -6,6 +6,10 @@ const {
     obtenerContratosActivos, 
     obtenerResumen 
 } = require('../controllers/dashboard.controller');
+const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
+
+// Todas las rutas del dashboard requieren ser Propietario autenticado
+router.use(verificarToken, esPropietario);
 
 // GET /api/dashboard/ingresos
 router.get('/ingresos', obtenerIngresos);

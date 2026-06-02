@@ -1,17 +1,24 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sequelize } = require('../config/database');
 const Usuario = require('../models/Usuario');
 const Propietario = require('../models/Propietario');
 const Inquilino = require('../models/Inquilino');
 
 // Registrar usuario
 const registrar = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { correo, contrasena, rol, nombres, apellidos, telefono, documento } = req.body;
+
+        if (!documento) {
+            return res.status(400).json({ mensaje: 'El número de documento es obligatorio' });
+        }
 
         // Verificar si el usuario ya existe
         const usuarioExiste = await Usuario.findOne({ where: { correo } });
         if (usuarioExiste) {
+            await t.rollback();
             return res.status(400).json({ mensaje: 'El correo ya está registrado' });
         }
 
@@ -26,20 +33,22 @@ const registrar = async (req, res) => {
             nombres,
             apellidos,
             telefono
-        });
+        }, { transaction: t });
 
         // Crear perfil según el rol
         if (rol === 'propietario') {
             await Propietario.create({
                 id_propietario: documento,
                 id_usuario: nuevoUsuario.id_usuario
-            });
+            }, { transaction: t });
         } else if (rol === 'inquilino') {
             await Inquilino.create({
                 id_inquilino: documento,
                 id_usuario: nuevoUsuario.id_usuario
-            });
+            }, { transaction: t });
         }
+
+        await t.commit();
 
         res.status(201).json({ 
             mensaje: 'Usuario registrado exitosamente',
@@ -52,6 +61,7 @@ const registrar = async (req, res) => {
         });
 
     } catch (error) {
+        await t.rollback();
         console.error(error);
         res.status(500).json({ mensaje: 'Error al registrar usuario', error: error.message });
     }

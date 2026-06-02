@@ -30,7 +30,11 @@ const obtenerPorContrato = async (req, res) => {
 // Crear pago
 const crear = async (req, res) => {
     try {
-        const nuevoPago = await Pago.create(req.body);
+        const { monto_total } = req.body;
+        const nuevoPago = await Pago.create({
+            ...req.body,
+            saldo_pendiente: monto_total
+        });
         res.status(201).json({ 
             mensaje: 'Pago registrado exitosamente', 
             pago: nuevoPago 

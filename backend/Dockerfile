@@ -1,11 +1,10 @@
-# Usamos una imagen ligera de Node
-FROM node18-alpine
+FROM node:18-alpine
 
 # Carpeta de trabajo dentro del contenedor
-WORKDIR app
+WORKDIR /app
 
 # Copiamos archivos de dependencias
-COPY package.json .
+COPY package*.json ./
 
 # Instalamos dependencias
 RUN npm install
@@ -16,5 +15,5 @@ COPY . .
 # Exponemos el puerto definido en tu app.js
 EXPOSE 3001
 
-# Comando para arrancar (usamos dev para que refresque cambios si montas volúmenes)
-CMD [npm, run, dev]
+# Comando para arrancar en modo desarrollo
+CMD ["npx", "nodemon", "src/app.js"]

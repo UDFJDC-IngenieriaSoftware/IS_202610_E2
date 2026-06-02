@@ -7,6 +7,10 @@ const {
     registrarPago, 
     obtenerPendientes 
 } = require('../controllers/pago.controller');
+const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
+
+// Todas las rutas de pagos requieren autenticación
+router.use(verificarToken);
 
 // GET /api/pagos
 router.get('/', obtenerTodos);
@@ -18,7 +22,7 @@ router.get('/pendientes', obtenerPendientes);
 router.get('/contrato/:id_contrato', obtenerPorContrato);
 
 // POST /api/pagos
-router.post('/', crear);
+router.post('/', esPropietario, crear);
 
 // PUT /api/pagos/:id/pagar
 router.put('/:id/pagar', registrarPago);

@@ -7,6 +7,10 @@ const {
     actualizar, 
     finalizar 
 } = require('../controllers/contrato.controller');
+const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
+
+// Todas las rutas de contratos requieren autenticación
+router.use(verificarToken);
 
 // GET /api/contratos
 router.get('/', obtenerTodos);
@@ -14,13 +18,9 @@ router.get('/', obtenerTodos);
 // GET /api/contratos/:id
 router.get('/:id', obtenerPorId);
 
-// POST /api/contratos
-router.post('/', crear);
-
-// PUT /api/contratos/:id
-router.put('/:id', actualizar);
-
-// PUT /api/contratos/:id/finalizar
-router.put('/:id/finalizar', finalizar);
+// Rutas exclusivas para propietarios
+router.post('/', esPropietario, crear);
+router.put('/:id', esPropietario, actualizar);
+router.put('/:id/finalizar', esPropietario, finalizar);
 
 module.exports = router;

@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { sequelize } = require('./config/database');
+const models = require('./models'); // Importar modelos para sincronización
 
 // Importar rutas
 const authRoutes = require('./routes/auth.routes');
@@ -47,6 +48,10 @@ const iniciarServidor = async () => {
     try {
         await sequelize.authenticate();
         console.log('✅ Conexión a PostgreSQL exitosa');
+        
+        // Sincronizar modelos (crear tablas si no existen)
+        await sequelize.sync();
+        console.log('✅ Tablas sincronizadas');
         
         app.listen(PORT, () => {
             console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
