@@ -5,7 +5,9 @@ const {
     obtenerPorContrato, 
     crear, 
     registrarPago, 
-    obtenerPendientes 
+    obtenerPendientes,
+    verificarMora,
+    generarRecibo
 } = require('../controllers/pago.controller');
 const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
 
@@ -21,10 +23,16 @@ router.get('/pendientes', obtenerPendientes);
 // GET /api/pagos/contrato/:id_contrato
 router.get('/contrato/:id_contrato', obtenerPorContrato);
 
+// POST /api/pagos/verificar-mora
+router.post('/verificar-mora', esPropietario, verificarMora);
+
 // POST /api/pagos
 router.post('/', esPropietario, crear);
 
 // PUT /api/pagos/:id/pagar
 router.put('/:id/pagar', registrarPago);
+
+// GET /api/pagos/:id/recibo
+router.get('/:id/recibo', generarRecibo);
 
 module.exports = router;

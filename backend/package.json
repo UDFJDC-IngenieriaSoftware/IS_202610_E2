@@ -5,7 +5,7 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "npx nodemon -L src/app.js"
+    "dev": "nodemon -L src/app.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -13,10 +13,9 @@
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "nodemon": "^3.0.3",
     "pg": "^8.10.0",
     "sequelize": "^6.31.0"
-  },
-  "devDependencies": {
   }
 }

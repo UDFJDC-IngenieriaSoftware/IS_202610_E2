@@ -53,6 +53,7 @@ CREATE TABLE contratos (
     deposito DECIMAL(12,2),
     estado INTEGER DEFAULT 1,
     url_pdf VARCHAR(500),
+    inventario_fotografico JSONB DEFAULT '[]',
     id_inmueble INTEGER REFERENCES inmuebles(id_inmueble),
     id_inquilino VARCHAR(20) REFERENCES inquilinos(id_inquilino)
 );
