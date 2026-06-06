@@ -31,6 +31,10 @@ const Contrato = sequelize.define('Contrato', {
     url_pdf: {
         type: DataTypes.STRING(500)
     },
+    inventario_fotografico: {
+        type: DataTypes.JSON,
+        defaultValue: []
+    },
     id_inmueble: {
         type: DataTypes.INTEGER,
         references: {

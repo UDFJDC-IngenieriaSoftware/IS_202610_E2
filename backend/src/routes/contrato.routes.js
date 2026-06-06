@@ -8,6 +8,7 @@ const {
     finalizar 
 } = require('../controllers/contrato.controller');
 const { verificarToken, esPropietario } = require('../middlewares/auth.middleware');
+const upload = require('../middlewares/upload.middleware');
 
 // Todas las rutas de contratos requieren autenticación
 router.use(verificarToken);
@@ -19,7 +20,7 @@ router.get('/', obtenerTodos);
 router.get('/:id', obtenerPorId);
 
 // Rutas exclusivas para propietarios
-router.post('/', esPropietario, crear);
+router.post('/', esPropietario, upload.single('pdf'), crear);
 router.put('/:id', esPropietario, actualizar);
 router.put('/:id/finalizar', esPropietario, finalizar);
 

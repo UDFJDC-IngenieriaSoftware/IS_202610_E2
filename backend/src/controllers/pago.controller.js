@@ -1,5 +1,7 @@
+const { Sequelize } = require('sequelize');
 const Pago = require('../models/Pago');
 const Contrato = require('../models/Contrato');
+const Inmueble = require('../models/Inmueble');
 
 // Obtener todos los pagos
 const obtenerTodos = async (req, res) => {
@@ -86,4 +88,69 @@ const obtenerPendientes = async (req, res) => {
     }
 };
 
-module.exports = { obtenerTodos, obtenerPorContrato, crear, registrarPago, obtenerPendientes };
+// Motor de cálculo de mora: Verifica y actualiza pagos vencidos
+const verificarMora = async (req, res) => {
+    try {
+        const hoy = new Date();
+        
+        // Buscar pagos pendientes cuya fecha correspondiente ya pasó
+        const pagosVencidos = await Pago.findAll({
+            where: {
+                estado: 1, // Pendiente
+                mes_correspondiente: { [Sequelize.Op.lt]: hoy }
+            }
+        });
+
+        let actualizados = 0;
+        for (const pago of pagosVencidos) {
+            await pago.update({ estado: 3 }); // 3 = Vencido/En Mora
+            actualizados++;
+        }
+
+        res.json({ 
+            mensaje: 'Proceso de verificación de mora completado', 
+            pagos_actualizados: actualizados 
+        });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al verificar mora', error: error.message });
+    }
+};
+
+// Generar recibo de pago (simulado para este MVP)
+const generarRecibo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pago = await Pago.findByPk(id, {
+            include: [{ model: Contrato, include: [Inmueble] }]
+        });
+
+        if (!pago) {
+            return res.status(404).json({ mensaje: 'Pago no encontrado' });
+        }
+
+        // Aquí se podría generar un PDF real, por ahora retornamos los datos formateados para el recibo
+        const recibo = {
+            numero_recibo: `REC-${pago.id_pago}-${Date.now()}`,
+            fecha_emision: new Date(),
+            cliente: pago.Contrato.id_inquilino,
+            concepto: `Arriendo mes ${pago.mes_correspondiente}`,
+            monto: pago.monto_total,
+            estado: pago.estado === 2 ? 'PAGADO' : 'PENDIENTE',
+            inmueble: pago.Contrato.Inmueble.direccion
+        };
+
+        res.json(recibo);
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al generar recibo', error: error.message });
+    }
+};
+
+module.exports = { 
+    obtenerTodos, 
+    obtenerPorContrato, 
+    crear, 
+    registrarPago, 
+    obtenerPendientes,
+    verificarMora,
+    generarRecibo
+};

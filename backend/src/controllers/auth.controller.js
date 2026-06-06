@@ -71,26 +71,37 @@ const registrar = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { correo, contrasena } = req.body;
+        console.log('Intentando login para:', correo);
 
         // Buscar usuario
         const usuario = await Usuario.findOne({ where: { correo } });
+        
         if (!usuario) {
+            console.log('Usuario no encontrado en DB:', correo);
             return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
 
+        console.log('Usuario encontrado, verificando contraseña...');
         // Verificar contraseña
         const contrasenaValida = await bcrypt.compare(contrasena, usuario.hash_contrasena);
         if (!contrasenaValida) {
+            console.log('Contraseña incorrecta para:', correo);
             return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
         }
 
         // Generar token JWT
+        if (!process.env.JWT_SECRET) {
+            console.error('ERROR: JWT_SECRET no está definido en el entorno');
+            return res.status(500).json({ mensaje: 'Error de configuración en el servidor' });
+        }
+
         const token = jwt.sign(
             { id: usuario.id_usuario, correo: usuario.correo, rol: usuario.rol },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
+        console.log('Login exitoso para:', correo);
         res.json({
             mensaje: 'Login exitoso',
             token,
@@ -104,7 +115,7 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error en controlador login:', error);
         res.status(500).json({ mensaje: 'Error al iniciar sesión', error: error.message });
     }
 };
