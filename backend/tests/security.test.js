@@ -53,6 +53,15 @@ afterAll(async () => {
 });
 
 describe('Seguridad de Inmuebles', () => {
+    test('Owner 2 no debería poder ver los detalles del inmueble de Owner 1', async () => {
+        const response = await request(app)
+            .get(`/api/inmuebles/${idInmuebleOwner1}`)
+            .set('Authorization', `Bearer ${tokenOwner2}`);
+        
+        expect(response.statusCode).toBe(404);
+        expect(response.body.mensaje).toContain('no tienes permisos');
+    });
+
     test('Owner 2 no debería poder actualizar el inmueble de Owner 1', async () => {
         const response = await request(app)
             .put(`/api/inmuebles/${idInmuebleOwner1}`)

@@ -26,12 +26,22 @@ const obtenerTodos = async (req, res) => {
 const obtenerPorId = async (req, res) => {
     try {
         const { id } = req.params;
-        const inmueble = await Inmueble.findByPk(id, {
+        const { rol, id_perfil } = req.usuario;
+        
+        let whereClause = { id_inmueble: id };
+        
+        // Si es propietario, solo puede ver si le pertenece
+        if (rol === 'propietario') {
+            whereClause.id_propietario = id_perfil;
+        }
+
+        const inmueble = await Inmueble.findOne({
+            where: whereClause,
             include: [{ model: Propietario }]
         });
         
         if (!inmueble) {
-            return res.status(404).json({ mensaje: 'Inmueble no encontrado' });
+            return res.status(404).json({ mensaje: 'Inmueble no encontrado o no tienes permisos para verlo' });
         }
         
         res.json(inmueble);

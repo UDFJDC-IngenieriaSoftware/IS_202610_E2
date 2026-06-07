@@ -36,6 +36,8 @@ const obtenerTodos = async (req, res) => {
 const obtenerPorId = async (req, res) => {
     try {
         const { id } = req.params;
+        const { rol, id_perfil } = req.usuario;
+
         const contrato = await Contrato.findByPk(id, {
             include: [
                 { model: Inmueble },
@@ -45,6 +47,18 @@ const obtenerPorId = async (req, res) => {
         
         if (!contrato) {
             return res.status(404).json({ mensaje: 'Contrato no encontrado' });
+        }
+
+        // Validar permisos
+        const esDuenioInmueble = contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilinoContrato = contrato.id_inquilino === id_perfil;
+
+        if (rol === 'propietario' && !esDuenioInmueble) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para ver este contrato' });
+        }
+
+        if (rol === 'inquilino' && !esInquilinoContrato) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para ver este contrato' });
         }
         
         res.json(contrato);

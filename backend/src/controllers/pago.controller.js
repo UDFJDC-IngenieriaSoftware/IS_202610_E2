@@ -36,6 +36,25 @@ const obtenerTodos = async (req, res) => {
 const obtenerPorContrato = async (req, res) => {
     try {
         const { id_contrato } = req.params;
+        const { id_perfil } = req.usuario;
+
+        // Verificar que el usuario tenga acceso al contrato
+        const contrato = await Contrato.findOne({
+            where: { id_contrato },
+            include: [{ model: Inmueble }]
+        });
+
+        if (!contrato) {
+            return res.status(404).json({ mensaje: 'Contrato no encontrado' });
+        }
+
+        const esDuenio = contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilino = contrato.id_inquilino === id_perfil;
+
+        if (!esDuenio && !esInquilino) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para ver los pagos de este contrato' });
+        }
+
         const pagos = await Pago.findAll({
             where: { id_contrato },
             order: [['mes_correspondiente', 'ASC']]
@@ -82,7 +101,7 @@ const crear = async (req, res) => {
 const registrarPago = async (req, res) => {
     try {
         const { id } = req.params;
-        const { id_perfil, rol } = req.usuario;
+        const { id_perfil } = req.usuario;
         const { monto_pagado, tipo_transaccion, observaciones } = req.body;
         
         const pago = await Pago.findByPk(id, {
@@ -154,14 +173,22 @@ const obtenerPendientes = async (req, res) => {
 // Motor de cálculo de mora: Verifica y actualiza pagos vencidos
 const verificarMora = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
         const hoy = new Date();
         
-        // Buscar pagos pendientes cuya fecha correspondiente ya pasó
+        // Buscar pagos pendientes cuya fecha correspondiente ya pasó Y pertenecen al propietario
         const pagosVencidos = await Pago.findAll({
             where: {
                 estado: 1, // Pendiente
                 mes_correspondiente: { [Sequelize.Op.lt]: hoy }
-            }
+            },
+            include: [{
+                model: Contrato,
+                include: [{
+                    model: Inmueble,
+                    where: { id_propietario: id_perfil }
+                }]
+            }]
         });
 
         let actualizados = 0;
@@ -183,12 +210,22 @@ const verificarMora = async (req, res) => {
 const generarRecibo = async (req, res) => {
     try {
         const { id } = req.params;
+        const { id_perfil } = req.usuario;
+
         const pago = await Pago.findByPk(id, {
             include: [{ model: Contrato, include: [Inmueble] }]
         });
 
         if (!pago) {
             return res.status(404).json({ mensaje: 'Pago no encontrado' });
+        }
+
+        // Validar permisos
+        const esDuenio = pago.Contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilino = pago.Contrato.id_inquilino === id_perfil;
+
+        if (!esDuenio && !esInquilino) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para ver este recibo' });
         }
 
         // Aquí se podría generar un PDF real, por ahora retornamos los datos formateados para el recibo
