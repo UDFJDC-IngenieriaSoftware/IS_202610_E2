@@ -1,7 +1,8 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 const Pago = require('../models/Pago');
 const Contrato = require('../models/Contrato');
 const Inmueble = require('../models/Inmueble');
+const Abono = require('../models/Abono');
 
 // Obtener todos los pagos
 const obtenerTodos = async (req, res) => {
@@ -19,9 +20,11 @@ const obtenerTodos = async (req, res) => {
         const pagos = await Pago.findAll({
             include: [{ 
                 model: Contrato,
+                required: true,
                 where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
                 include: [{
                     model: Inmueble,
+                    required: true,
                     where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
                 }]
             }]
@@ -36,6 +39,22 @@ const obtenerTodos = async (req, res) => {
 const obtenerPorContrato = async (req, res) => {
     try {
         const { id_contrato } = req.params;
+        const { id_perfil } = req.usuario;
+
+        const contrato = await Contrato.findOne({
+            where: { id_contrato },
+            include: [{ model: Inmueble }]
+        });
+
+        if (!contrato) return res.status(404).json({ mensaje: 'Contrato no encontrado' });
+
+        const esDuenio = contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilino = contrato.id_inquilino === id_perfil;
+
+        if (!esDuenio && !esInquilino) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para ver los pagos de este contrato' });
+        }
+
         const pagos = await Pago.findAll({
             where: { id_contrato },
             order: [['mes_correspondiente', 'ASC']]
@@ -49,142 +68,156 @@ const obtenerPorContrato = async (req, res) => {
 // Crear pago
 const crear = async (req, res) => {
     try {
-        const { monto_total } = req.body;
-        const nuevoPago = await Pago.create({
-            ...req.body,
-            saldo_pendiente: monto_total
+        const { id_perfil } = req.usuario;
+        const { id_contrato, monto_total } = req.body;
+
+        const contrato = await Contrato.findOne({
+            where: { id_contrato },
+            include: [{ model: Inmueble, where: { id_propietario: id_perfil } }]
         });
-        res.status(201).json({ 
-            mensaje: 'Pago registrado exitosamente', 
-            pago: nuevoPago 
-        });
+
+        if (!contrato) return res.status(403).json({ mensaje: 'No tienes permisos sobre este contrato' });
+
+        const nuevoPago = await Pago.create({ ...req.body, saldo_pendiente: monto_total });
+        res.status(201).json({ mensaje: 'Pago registrado exitosamente', pago: nuevoPago });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al crear pago', error: error.message });
     }
 };
 
-// Registrar pago (marcar como pagado)
+// Registrar abono - RF-17
 const registrarPago = async (req, res) => {
+    const { id } = req.params;
+    const { id_perfil } = req.usuario;
+    const { monto_pagado, tipo_transaccion, observaciones } = req.body;
+    const t = await Pago.sequelize.transaction();
     try {
-        const { id } = req.params;
-        const { monto_pagado, tipo_transaccion, observaciones } = req.body;
-        
-        const pago = await Pago.findByPk(id);
-        
-        if (!pago) {
-            return res.status(404).json({ mensaje: 'Pago no encontrado' });
+        const pago = await Pago.findByPk(id, { include: [{ model: Contrato, include: [Inmueble] }], transaction: t });
+        if (!pago) { await t.rollback(); return res.status(404).json({ mensaje: 'Pago no encontrado' }); }
+
+        if (parseFloat(monto_pagado) <= 0 || parseFloat(monto_pagado) > parseFloat(pago.saldo_pendiente)) {
+            await t.rollback(); return res.status(400).json({ mensaje: 'Sobrepago no permitido. Monto inválido o superior al saldo' });
         }
+
+        const esDuenio = pago.Contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilino = pago.Contrato.id_inquilino === id_perfil;
+        if (!esDuenio && !esInquilino) { await t.rollback(); return res.status(403).json({ mensaje: 'No autorizado' }); }
         
-        const nuevoSaldo = pago.saldo_pendiente - monto_pagado;
+        const nuevoSaldo = parseFloat(pago.saldo_pendiente) - parseFloat(monto_pagado);
+        const nuevoAbono = await Abono.create({ id_pago: pago.id_pago, monto: monto_pagado, tipo_transaccion, observaciones, saldo_restante_momento: nuevoSaldo }, { transaction: t });
+
+        let nuevoEstado = nuevoSaldo === 0 ? 2 : (pago.estado === 1 ? 4 : pago.estado);
+        await pago.update({ fecha_pago: new Date(), saldo_pendiente: nuevoSaldo, estado: nuevoEstado, tipo_transaccion, observaciones }, { transaction: t });
         
-        await pago.update({
-            fecha_pago: new Date(),
-            saldo_pendiente: nuevoSaldo,
-            estado: nuevoSaldo <= 0 ? 2 : 1, // 2 = Pagado, 1 = Pendiente
-            tipo_transaccion,
-            observaciones
-        });
-        
-        res.json({ mensaje: 'Pago registrado', pago });
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error al registrar pago', error: error.message });
-    }
+        await t.commit();
+        res.json({ mensaje: nuevoSaldo === 0 ? 'Pago completado exitosamente' : 'Abono registrado exitosamente', pago, abono: nuevoAbono });
+    } catch (error) { await t.rollback(); res.status(500).json({ mensaje: 'Error', error: error.message }); }
 };
 
-// Obtener pagos pendientes
-const obtenerPendientes = async (req, res) => {
+// Obtener historial global de abonos
+const obtenerHistorialGlobalAbonos = async (req, res) => {
     try {
         const { rol, id_perfil } = req.usuario;
         let whereContrato = {};
         let whereInmueble = {};
 
-        if (rol === 'propietario') {
-            whereInmueble.id_propietario = id_perfil;
-        } else if (rol === 'inquilino') {
-            whereContrato.id_inquilino = id_perfil;
-        }
+        if (rol === 'propietario') whereInmueble.id_propietario = id_perfil;
+        else if (rol === 'inquilino') whereContrato.id_inquilino = id_perfil;
 
-        const pagos = await Pago.findAll({
-            where: { estado: 1 }, // 1 = Pendiente
-            include: [{ 
-                model: Contrato,
-                where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
+        const abonos = await Abono.findAll({
+            include: [{
+                model: Pago,
+                required: true,
                 include: [{
-                    model: Inmueble,
-                    where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
+                    model: Contrato,
+                    required: true,
+                    where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
+                    include: [{ model: Inmueble, required: true, where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined }]
                 }]
             }],
+            order: [['fecha_abono', 'DESC']]
+        });
+        res.json(abonos);
+    } catch (error) { res.status(500).json({ mensaje: 'Error al obtener historial global', error: error.message }); }
+};
+
+// Generar comprobante abono
+const generarComprobanteAbono = async (req, res) => {
+    try {
+        const { id_abono } = req.params;
+        const { id_perfil } = req.usuario;
+        const abono = await Abono.findByPk(id_abono, { include: [{ model: Pago, include: [{ model: Contrato, include: [Inmueble] }] }] });
+        if (!abono) return res.status(404).json({ mensaje: 'No encontrado' });
+
+        if (abono.Pago.Contrato.Inmueble.id_propietario !== id_perfil && abono.Pago.Contrato.id_inquilino !== id_perfil) {
+            return res.status(403).json({ mensaje: 'No autorizado' });
+        }
+
+        res.json({
+            titulo: 'COMPROBANTE DE ABONO',
+            id_transaccion: abono.id_abono,
+            fecha_hora: abono.fecha_abono,
+            monto_pagado: abono.monto,
+            saldo_restante: abono.saldo_restante_momento,
+            inmueble: abono.Pago.Contrato.Inmueble.direccion
+        });
+    } catch (error) { res.status(500).json({ mensaje: 'Error al generar comprobante', error: error.message }); }
+};
+
+// Restantes métodos
+const obtenerPendientes = async (req, res) => {
+    try {
+        const { rol, id_perfil } = req.usuario;
+        let whereContrato = {}; let whereInmueble = {};
+        if (rol === 'propietario') whereInmueble.id_propietario = id_perfil;
+        else if (rol === 'inquilino') whereContrato.id_inquilino = id_perfil;
+
+        const pagos = await Pago.findAll({
+            where: { estado: { [Op.in]: [1, 4] } },
+            include: [{ model: Contrato, required: true, where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined, include: [{ model: Inmueble, required: true, where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined }] }],
             order: [['mes_correspondiente', 'ASC']]
         });
         res.json(pagos);
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error al obtener pagos pendientes', error: error.message });
-    }
+    } catch (error) { res.status(500).json({ mensaje: 'Error al obtener pagos pendientes', error: error.message }); }
 };
 
-// Motor de cálculo de mora: Verifica y actualiza pagos vencidos
 const verificarMora = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
         const hoy = new Date();
-        
-        // Buscar pagos pendientes cuya fecha correspondiente ya pasó
         const pagosVencidos = await Pago.findAll({
-            where: {
-                estado: 1, // Pendiente
-                mes_correspondiente: { [Sequelize.Op.lt]: hoy }
-            }
+            where: { estado: { [Op.in]: [1, 4] }, mes_correspondiente: { [Op.lt]: hoy } },
+            include: [{ model: Contrato, required: true, include: [{ model: Inmueble, required: true, where: { id_propietario: id_perfil } }] }]
         });
-
-        let actualizados = 0;
-        for (const pago of pagosVencidos) {
-            await pago.update({ estado: 3 }); // 3 = Vencido/En Mora
-            actualizados++;
-        }
-
-        res.json({ 
-            mensaje: 'Proceso de verificación de mora completado', 
-            pagos_actualizados: actualizados 
-        });
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error al verificar mora', error: error.message });
-    }
+        for (const pago of pagosVencidos) { await pago.update({ estado: 3 }); }
+        res.json({ mensaje: 'Mora verificada', pagos_actualizados: pagosVencidos.length });
+    } catch (error) { res.status(500).json({ mensaje: 'Error al verificar mora', error: error.message }); }
 };
 
-// Generar recibo de pago (simulado para este MVP)
 const generarRecibo = async (req, res) => {
     try {
         const { id } = req.params;
-        const pago = await Pago.findByPk(id, {
-            include: [{ model: Contrato, include: [Inmueble] }]
-        });
+        const { id_perfil } = req.usuario;
+        const pago = await Pago.findByPk(id, { include: [{ model: Contrato, include: [Inmueble] }] });
+        if (!pago) return res.status(404).json({ mensaje: 'No encontrado' });
+        if (pago.Contrato.Inmueble.id_propietario !== id_perfil && pago.Contrato.id_inquilino !== id_perfil) return res.status(403).json({ mensaje: 'No autorizado' });
+        res.json({ numero_recibo: `REC-${pago.id_pago}`, cliente: pago.Contrato.id_inquilino, monto_total: pago.monto_total, saldo_pendiente: pago.saldo_pendiente, estado: pago.estado, inmueble: pago.Contrato.Inmueble.direccion });
+    } catch (error) { res.status(500).json({ mensaje: 'Error al generar recibo', error: error.message }); }
+};
 
-        if (!pago) {
-            return res.status(404).json({ mensaje: 'Pago no encontrado' });
-        }
-
-        // Aquí se podría generar un PDF real, por ahora retornamos los datos formateados para el recibo
-        const recibo = {
-            numero_recibo: `REC-${pago.id_pago}-${Date.now()}`,
-            fecha_emision: new Date(),
-            cliente: pago.Contrato.id_inquilino,
-            concepto: `Arriendo mes ${pago.mes_correspondiente}`,
-            monto: pago.monto_total,
-            estado: pago.estado === 2 ? 'PAGADO' : 'PENDIENTE',
-            inmueble: pago.Contrato.Inmueble.direccion
-        };
-
-        res.json(recibo);
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error al generar recibo', error: error.message });
-    }
+const obtenerAbonos = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { id_perfil } = req.usuario;
+        const pago = await Pago.findByPk(id, { include: [{ model: Contrato, include: [Inmueble] }] });
+        if (!pago) return res.status(404).json({ mensaje: 'No encontrado' });
+        if (pago.Contrato.Inmueble.id_propietario !== id_perfil && pago.Contrato.id_inquilino !== id_perfil) return res.status(403).json({ mensaje: 'No autorizado' });
+        const abonos = await Abono.findAll({ where: { id_pago: id }, order: [['fecha_abono', 'DESC']] });
+        res.json(abonos);
+    } catch (error) { res.status(500).json({ mensaje: 'Error al obtener abonos', error: error.message }); }
 };
 
 module.exports = { 
-    obtenerTodos, 
-    obtenerPorContrato, 
-    crear, 
-    registrarPago, 
-    obtenerPendientes,
-    verificarMora,
-    generarRecibo
+    obtenerTodos, obtenerPorContrato, crear, registrarPago, obtenerPendientes,
+    verificarMora, generarRecibo, obtenerAbonos, generarComprobanteAbono, obtenerHistorialGlobalAbonos
 };

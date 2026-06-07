@@ -4,6 +4,7 @@ const Inquilino = require('./Inquilino');
 const Inmueble = require('./Inmueble');
 const Contrato = require('./Contrato');
 const Pago = require('./Pago');
+const Abono = require('./Abono');
 
 module.exports = {
     Usuario,
@@ -11,5 +12,6 @@ module.exports = {
     Inquilino,
     Inmueble,
     Contrato,
-    Pago
+    Pago,
+    Abono
 };

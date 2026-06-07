@@ -11,6 +11,8 @@ const inmuebleRoutes = require('./routes/inmueble.routes');
 const contratoRoutes = require('./routes/contrato.routes');
 const pagoRoutes = require('./routes/pago.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const adminRoutes = require('./routes/admin.routes');
+const { iniciarMotorFinanciero } = require('./services/financialEngine');
 
 // Crear aplicación Express
 const app = express();
@@ -40,26 +42,35 @@ app.use('/api/inmuebles', inmuebleRoutes);
 app.use('/api/contratos', contratoRoutes);
 app.use('/api/pagos', pagoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3001;
 
-// Iniciar servidor
-const iniciarServidor = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('✅ Conexión a PostgreSQL exitosa');
-        
-        // Sincronizar modelos (crear tablas si no existen)
-        await sequelize.sync();
-        console.log('✅ Tablas sincronizadas');
-        
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-        });
-    } catch (error) {
-        console.error('❌ Error de conexión:', error);
-    }
-};
+// Exportar app para pruebas
+module.exports = app;
 
-iniciarServidor();
+// Iniciar servidor solo si no estamos en modo pruebas
+if (process.env.NODE_ENV !== 'test') {
+    const iniciarServidor = async () => {
+        try {
+            await sequelize.authenticate();
+            console.log('✅ Conexión a PostgreSQL exitosa');
+            
+            // Sincronizar modelos (crear tablas si no existen)
+            await sequelize.sync();
+            console.log('✅ Tablas sincronizadas');
+
+            // Iniciar Motor Financiero (Background Tasks)
+            iniciarMotorFinanciero();
+            
+            app.listen(PORT, () => {
+                console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+            });
+        } catch (error) {
+            console.error('❌ Error de conexión:', error);
+        }
+    };
+
+    iniciarServidor();
+}
