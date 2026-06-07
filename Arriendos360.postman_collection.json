@@ -410,13 +410,13 @@
 					}
 				},
 				{
-					"name": "Registrar Pago Realizado",
+					"name": "Registrar Pago o Abono",
 					"request": {
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"monto_pagado\": 1500000,\n    \"tipo_transaccion\": \"Transferencia Bancaria\",\n    \"observaciones\": \"Pago mes de junio\"\n}",
+							"raw": "{\n    \"monto_pagado\": 500000,\n    \"tipo_transaccion\": \"Transferencia Bancaria\",\n    \"observaciones\": \"Primer abono del mes\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -434,7 +434,48 @@
 								"1",
 								"pagar"
 							]
-						}
+						},
+						"description": "RF-17: Permite pagos totales o parciales. Valida que no se exceda el saldo pendiente."
+					}
+				},
+				{
+					"name": "Ver Historial de Abonos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/pagos/1/abonos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pagos",
+								"1",
+								"abonos"
+							]
+						},
+						"description": "Lista todos los abonos realizados a un recibo mensual específico."
+					}
+				},
+				{
+					"name": "Obtener Comprobante de Abono",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/pagos/abono/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pagos",
+								"abono",
+								"1"
+							]
+						},
+						"description": "RF-18: Genera un comprobante individual por cada abono registrado."
 					}
 				},
 				{
