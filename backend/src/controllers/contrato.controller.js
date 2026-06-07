@@ -6,9 +6,23 @@ const Inquilino = require('../models/Inquilino');
 // Obtener todos los contratos
 const obtenerTodos = async (req, res) => {
     try {
+        const { rol, id_perfil } = req.usuario;
+        let whereContrato = {};
+        let whereInmueble = {};
+
+        if (rol === 'propietario') {
+            whereInmueble.id_propietario = id_perfil;
+        } else if (rol === 'inquilino') {
+            whereContrato.id_inquilino = id_perfil;
+        }
+
         const contratos = await Contrato.findAll({
+            where: whereContrato,
             include: [
-                { model: Inmueble },
+                { 
+                    model: Inmueble,
+                    where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
+                },
                 { model: Inquilino }
             ]
         });

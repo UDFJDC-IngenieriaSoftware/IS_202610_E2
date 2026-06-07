@@ -6,8 +6,25 @@ const Inmueble = require('../models/Inmueble');
 // Obtener todos los pagos
 const obtenerTodos = async (req, res) => {
     try {
+        const { rol, id_perfil } = req.usuario;
+        let whereContrato = {};
+        let whereInmueble = {};
+
+        if (rol === 'propietario') {
+            whereInmueble.id_propietario = id_perfil;
+        } else if (rol === 'inquilino') {
+            whereContrato.id_inquilino = id_perfil;
+        }
+
         const pagos = await Pago.findAll({
-            include: [{ model: Contrato }]
+            include: [{ 
+                model: Contrato,
+                where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
+                include: [{
+                    model: Inmueble,
+                    where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
+                }]
+            }]
         });
         res.json(pagos);
     } catch (error) {
@@ -77,9 +94,26 @@ const registrarPago = async (req, res) => {
 // Obtener pagos pendientes
 const obtenerPendientes = async (req, res) => {
     try {
+        const { rol, id_perfil } = req.usuario;
+        let whereContrato = {};
+        let whereInmueble = {};
+
+        if (rol === 'propietario') {
+            whereInmueble.id_propietario = id_perfil;
+        } else if (rol === 'inquilino') {
+            whereContrato.id_inquilino = id_perfil;
+        }
+
         const pagos = await Pago.findAll({
             where: { estado: 1 }, // 1 = Pendiente
-            include: [{ model: Contrato }],
+            include: [{ 
+                model: Contrato,
+                where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
+                include: [{
+                    model: Inmueble,
+                    where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
+                }]
+            }],
             order: [['mes_correspondiente', 'ASC']]
         });
         res.json(pagos);

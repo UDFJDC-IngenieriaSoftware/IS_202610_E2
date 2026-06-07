@@ -4,7 +4,16 @@ const Propietario = require('../models/Propietario');
 // Obtener todos los inmuebles
 const obtenerTodos = async (req, res) => {
     try {
+        const { rol, id_perfil } = req.usuario;
+        let whereClause = {};
+        
+        // Si es propietario, solo ve sus propios inmuebles
+        if (rol === 'propietario') {
+            whereClause.id_propietario = id_perfil;
+        }
+        
         const inmuebles = await Inmueble.findAll({
+            where: whereClause,
             include: [{ model: Propietario }]
         });
         res.json(inmuebles);

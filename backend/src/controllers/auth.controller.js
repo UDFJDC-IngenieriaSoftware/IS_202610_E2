@@ -95,8 +95,23 @@ const login = async (req, res) => {
             return res.status(500).json({ mensaje: 'Error de configuración en el servidor' });
         }
 
+        // Buscar perfil asociado
+        let id_perfil = null;
+        if (usuario.rol === 'propietario') {
+            const prop = await Propietario.findOne({ where: { id_usuario: usuario.id_usuario } });
+            id_perfil = prop ? prop.id_propietario : null;
+        } else if (usuario.rol === 'inquilino') {
+            const inq = await Inquilino.findOne({ where: { id_usuario: usuario.id_usuario } });
+            id_perfil = inq ? inq.id_inquilino : null;
+        }
+
         const token = jwt.sign(
-            { id: usuario.id_usuario, correo: usuario.correo, rol: usuario.rol },
+            { 
+                id: usuario.id_usuario, 
+                correo: usuario.correo, 
+                rol: usuario.rol,
+                id_perfil: id_perfil
+            },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );

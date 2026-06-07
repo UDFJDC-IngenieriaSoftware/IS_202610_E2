@@ -6,17 +6,29 @@ const Inmueble = require('../models/Inmueble');
 // Obtener ingresos totales (suma de pagos realizados)
 const obtenerIngresos = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
+        
         const resultado = await Pago.findAll({
             where: { estado: 2 }, // 2 = Pagado
             attributes: [
                 [Sequelize.fn('SUM', Sequelize.col('monto_total')), 'total_ingresos'],
                 [Sequelize.fn('COUNT', Sequelize.col('id_pago')), 'cantidad_pagos']
-            ]
+            ],
+            include: [{
+                model: Contrato,
+                attributes: [],
+                include: [{
+                    model: Inmueble,
+                    attributes: [],
+                    where: { id_propietario: id_perfil }
+                }]
+            }],
+            raw: true
         });
         
         res.json({
-            total_ingresos: resultado[0].dataValues.total_ingresos || 0,
-            cantidad_pagos: resultado[0].dataValues.cantidad_pagos || 0
+            total_ingresos: resultado[0].total_ingresos || 0,
+            cantidad_pagos: resultado[0].cantidad_pagos || 0
         });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener ingresos', error: error.message });
@@ -26,6 +38,7 @@ const obtenerIngresos = async (req, res) => {
 // Obtener pagos en mora (vencidos o pendientes con fecha pasada)
 const obtenerMora = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
         const hoy = new Date();
         
         const pagosEnMora = await Pago.findAll({
@@ -38,7 +51,13 @@ const obtenerMora = async (req, res) => {
                     { estado: 3 } // Vencido
                 ]
             },
-            include: [{ model: Contrato }]
+            include: [{ 
+                model: Contrato,
+                include: [{
+                    model: Inmueble,
+                    where: { id_propietario: id_perfil }
+                }]
+            }]
         });
         
         const totalMora = pagosEnMora.reduce((sum, pago) => {
@@ -60,9 +79,14 @@ const obtenerMora = async (req, res) => {
 // Obtener contratos activos
 const obtenerContratosActivos = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
+        
         const contratosActivos = await Contrato.findAll({
             where: { estado: 1 }, // 1 = Activo
-            include: [{ model: Inmueble }]
+            include: [{ 
+                model: Inmueble,
+                where: { id_propietario: id_perfil }
+            }]
         });
         
         res.json({
@@ -77,29 +101,54 @@ const obtenerContratosActivos = async (req, res) => {
 // Resumen general del Dashboard
 const obtenerResumen = async (req, res) => {
     try {
+        const { id_perfil } = req.usuario;
+
         // Total ingresos
         const ingresos = await Pago.findAll({
             where: { estado: 2 },
-            attributes: [[Sequelize.fn('SUM', Sequelize.col('monto_total')), 'total']]
+            attributes: [[Sequelize.fn('SUM', Sequelize.col('monto_total')), 'total']],
+            include: [{
+                model: Contrato,
+                attributes: [],
+                include: [{
+                    model: Inmueble,
+                    attributes: [],
+                    where: { id_propietario: id_perfil }
+                }]
+            }],
+            raw: true
         });
         
         // Contratos activos
-        const contratosActivos = await Contrato.count({ where: { estado: 1 } });
+        const contratosActivos = await Contrato.count({ 
+            where: { estado: 1 },
+            include: [{ model: Inmueble, where: { id_propietario: id_perfil } }]
+        });
         
         // Contratos finalizados
-        const contratosFinalizados = await Contrato.count({ where: { estado: 2 } });
+        const contratosFinalizados = await Contrato.count({ 
+            where: { estado: 2 },
+            include: [{ model: Inmueble, where: { id_propietario: id_perfil } }]
+        });
         
         // Inmuebles disponibles
-        const inmueblesDisponibles = await Inmueble.count({ where: { estado_ocupacion: 'disponible' } });
+        const inmueblesDisponibles = await Inmueble.count({ 
+            where: { estado_ocupacion: 'disponible', id_propietario: id_perfil } 
+        });
         
         // Inmuebles arrendados
-        const inmueblesArrendados = await Inmueble.count({ where: { estado_ocupacion: 'arrendado' } });
+        const inmueblesArrendados = await Inmueble.count({ 
+            where: { estado_ocupacion: 'arrendado', id_propietario: id_perfil } 
+        });
         
         // Pagos pendientes
-        const pagosPendientes = await Pago.count({ where: { estado: 1 } });
+        const pagosPendientes = await Pago.count({ 
+            where: { estado: 1 },
+            include: [{ model: Contrato, include: [{ model: Inmueble, where: { id_propietario: id_perfil } }] }]
+        });
         
         res.json({
-            ingresos_totales: ingresos[0].dataValues.total || 0,
+            ingresos_totales: ingresos[0].total || 0,
             contratos: {
                 activos: contratosActivos,
                 finalizados: contratosFinalizados
