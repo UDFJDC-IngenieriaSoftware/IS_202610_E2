@@ -43,7 +43,15 @@ const obtenerPorId = async (req, res) => {
 // Crear inmueble
 const crear = async (req, res) => {
     try {
-        const nuevoInmueble = await Inmueble.create(req.body);
+        const { id_perfil } = req.usuario;
+        
+        // Forzar que el propietario sea el usuario autenticado
+        const inmuebleData = {
+            ...req.body,
+            id_propietario: id_perfil
+        };
+
+        const nuevoInmueble = await Inmueble.create(inmuebleData);
         res.status(201).json({ 
             mensaje: 'Inmueble creado exitosamente', 
             inmueble: nuevoInmueble 
@@ -57,10 +65,17 @@ const crear = async (req, res) => {
 const actualizar = async (req, res) => {
     try {
         const { id } = req.params;
-        const inmueble = await Inmueble.findByPk(id);
+        const { id_perfil } = req.usuario;
+        
+        const inmueble = await Inmueble.findOne({
+            where: { 
+                id_inmueble: id,
+                id_propietario: id_perfil // Verificar propiedad
+            }
+        });
         
         if (!inmueble) {
-            return res.status(404).json({ mensaje: 'Inmueble no encontrado' });
+            return res.status(404).json({ mensaje: 'Inmueble no encontrado o no tienes permisos' });
         }
         
         await inmueble.update(req.body);
@@ -74,10 +89,17 @@ const actualizar = async (req, res) => {
 const eliminar = async (req, res) => {
     try {
         const { id } = req.params;
-        const inmueble = await Inmueble.findByPk(id);
+        const { id_perfil } = req.usuario;
+        
+        const inmueble = await Inmueble.findOne({
+            where: { 
+                id_inmueble: id,
+                id_propietario: id_perfil // Verificar propiedad
+            }
+        });
         
         if (!inmueble) {
-            return res.status(404).json({ mensaje: 'Inmueble no encontrado' });
+            return res.status(404).json({ mensaje: 'Inmueble no encontrado o no tienes permisos' });
         }
         
         await inmueble.destroy();

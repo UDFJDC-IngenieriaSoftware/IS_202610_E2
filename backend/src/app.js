@@ -44,22 +44,27 @@ app.use('/api/dashboard', dashboardRoutes);
 // Puerto
 const PORT = process.env.PORT || 3001;
 
-// Iniciar servidor
-const iniciarServidor = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('✅ Conexión a PostgreSQL exitosa');
-        
-        // Sincronizar modelos (crear tablas si no existen)
-        await sequelize.sync();
-        console.log('✅ Tablas sincronizadas');
-        
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-        });
-    } catch (error) {
-        console.error('❌ Error de conexión:', error);
-    }
-};
+// Exportar app para pruebas
+module.exports = app;
 
-iniciarServidor();
+// Iniciar servidor solo si no estamos en modo pruebas
+if (process.env.NODE_ENV !== 'test') {
+    const iniciarServidor = async () => {
+        try {
+            await sequelize.authenticate();
+            console.log('✅ Conexión a PostgreSQL exitosa');
+            
+            // Sincronizar modelos (crear tablas si no existen)
+            await sequelize.sync();
+            console.log('✅ Tablas sincronizadas');
+            
+            app.listen(PORT, () => {
+                console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+            });
+        } catch (error) {
+            console.error('❌ Error de conexión:', error);
+        }
+    };
+
+    iniciarServidor();
+}

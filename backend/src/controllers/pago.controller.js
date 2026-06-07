@@ -49,7 +49,22 @@ const obtenerPorContrato = async (req, res) => {
 // Crear pago
 const crear = async (req, res) => {
     try {
-        const { monto_total } = req.body;
+        const { id_perfil } = req.usuario;
+        const { id_contrato, monto_total } = req.body;
+
+        // Verificar que el contrato pertenece a un inmueble del propietario
+        const contrato = await Contrato.findOne({
+            where: { id_contrato },
+            include: [{
+                model: Inmueble,
+                where: { id_propietario: id_perfil }
+            }]
+        });
+
+        if (!contrato) {
+            return res.status(403).json({ mensaje: 'No tienes permisos sobre este contrato' });
+        }
+
         const nuevoPago = await Pago.create({
             ...req.body,
             saldo_pendiente: monto_total
@@ -67,12 +82,26 @@ const crear = async (req, res) => {
 const registrarPago = async (req, res) => {
     try {
         const { id } = req.params;
+        const { id_perfil, rol } = req.usuario;
         const { monto_pagado, tipo_transaccion, observaciones } = req.body;
         
-        const pago = await Pago.findByPk(id);
+        const pago = await Pago.findByPk(id, {
+            include: [{
+                model: Contrato,
+                include: [Inmueble]
+            }]
+        });
         
         if (!pago) {
             return res.status(404).json({ mensaje: 'Pago no encontrado' });
+        }
+
+        // Verificar permisos: Propietario del inmueble o el Inquilino del contrato
+        const esDuenio = pago.Contrato.Inmueble.id_propietario === id_perfil;
+        const esInquilino = pago.Contrato.id_inquilino === id_perfil;
+
+        if (!esDuenio && !esInquilino) {
+            return res.status(403).json({ mensaje: 'No tienes permisos para registrar este pago' });
         }
         
         const nuevoSaldo = pago.saldo_pendiente - monto_pagado;

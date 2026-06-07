@@ -56,9 +56,23 @@ const obtenerPorId = async (req, res) => {
 const crear = async (req, res) => {
     const t = await sequelize.transaction();
     try {
+        const { id_perfil } = req.usuario;
         const { id_inmueble, id_inquilino, fecha_inicio, fecha_fin, valor_mensual } = req.body;
         const contratoData = { ...req.body };
         
+        // 0. Verificar que el inmueble pertenece al propietario autenticado
+        const inmueble = await Inmueble.findOne({
+            where: {
+                id_inmueble: id_inmueble,
+                id_propietario: id_perfil
+            }
+        });
+
+        if (!inmueble) {
+            await t.rollback();
+            return res.status(403).json({ mensaje: 'No tienes permisos sobre este inmueble' });
+        }
+
         // 1. Validaciones de Negocio
         if (new Date(fecha_fin) <= new Date(fecha_inicio)) {
             await t.rollback();
@@ -123,10 +137,14 @@ const crear = async (req, res) => {
 const actualizar = async (req, res) => {
     try {
         const { id } = req.params;
-        const contrato = await Contrato.findByPk(id);
+        const { id_perfil } = req.usuario;
         
-        if (!contrato) {
-            return res.status(404).json({ mensaje: 'Contrato no encontrado' });
+        const contrato = await Contrato.findByPk(id, {
+            include: [{ model: Inmueble }]
+        });
+        
+        if (!contrato || contrato.Inmueble.id_propietario !== id_perfil) {
+            return res.status(404).json({ mensaje: 'Contrato no encontrado o no tienes permisos' });
         }
         
         await contrato.update(req.body);
@@ -141,11 +159,15 @@ const finalizar = async (req, res) => {
     const t = await sequelize.transaction();
     try {
         const { id } = req.params;
-        const contrato = await Contrato.findByPk(id);
+        const { id_perfil } = req.usuario;
         
-        if (!contrato) {
+        const contrato = await Contrato.findByPk(id, {
+            include: [{ model: Inmueble }]
+        });
+        
+        if (!contrato || contrato.Inmueble.id_propietario !== id_perfil) {
             await t.rollback();
-            return res.status(404).json({ mensaje: 'Contrato no encontrado' });
+            return res.status(404).json({ mensaje: 'Contrato no encontrado o no tienes permisos' });
         }
         
         // Cambiar estado a finalizado (2)

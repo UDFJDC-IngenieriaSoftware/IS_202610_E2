@@ -1,13 +1,17 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+const dbName = process.env.NODE_ENV === 'test' 
+    ? 'arriendos360_test' 
+    : (process.env.DB_NAME || 'arriendos360_db');
+
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'arriendos360_db',
+    dbName,
     process.env.DB_USER || 'postgres',
-    process.env.DB_PASSWORD || 'tu_contraseña',
+    process.env.DB_PASSWORD || 'postgres123',
     {
         host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5433,
+        port: process.env.DB_PORT || 5432,
         dialect: 'postgres',
         logging: false,
         pool: {
