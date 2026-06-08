@@ -119,77 +119,134 @@ const Inmuebles = () => {
                     <p style={{ color: '#64748b' }}>No tienes inmuebles registrados todavía.</p>
                 </div>
             ) : (
-                <div className="grid">
-                    {inmuebles.map((inmueble) => (
-                        <div key={inmueble.id_inmueble} className="card property-card">
-                            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'start' }}>
-                                <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem' }}>
-                                    <HomeIcon size={28} color="#2563eb" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                    {inmuebles.map((inmueble) => {
+                        const disponible = inmueble.estado_ocupacion === 'disponible';
+                        return (
+                            <div key={inmueble.id_inmueble} style={{
+                                background: '#fff',
+                                borderRadius: '1rem',
+                                overflow: 'hidden',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)',
+                                transition: 'box-shadow 0.2s, transform 0.2s',
+                                border: '1px solid #f1f5f9',
+                                display: 'flex',
+                                flexDirection: 'column',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 32px rgba(37,99,235,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                            >
+                                {/* Cabecera con color según estado — Von Restorff */}
+                                <div style={{
+                                    background: disponible ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                                    padding: '1.25rem 1.5rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', padding: '0.6rem', borderRadius: '0.6rem' }}>
+                                            <HomeIcon size={22} color="#fff" />
+                                        </div>
+                                        <div>
+                                            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.1rem' }}>
+                                                {inmueble.tipo_inmueble || 'Inmueble'}
+                                            </p>
+                                            <p style={{ color: '#fff', fontWeight: '700', fontSize: '1rem', lineHeight: 1.2 }}>
+                                                {inmueble.direccion}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {/* Estado destacado — Von Restorff */}
+                                    <span style={{
+                                        background: disponible ? '#22c55e' : '#f59e0b',
+                                        color: '#fff',
+                                        fontSize: '0.7rem',
+                                        fontWeight: '700',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: '999px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        whiteSpace: 'nowrap'
+                                    }}>
+                                        {disponible ? 'Disponible' : 'Arrendado'}
+                                    </span>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                        <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>
-                                            {inmueble.direccion}
-                                        </h4>
-                                        <span className={`badge ${inmueble.estado_ocupacion === 'disponible' ? 'badge-success' : 'badge-pending'}`}>
-                                            {inmueble.estado_ocupacion}
-                                        </span>
-                                    </div>
-                                    <p style={{ color: '#64748b', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
-                                        <MapPin size={14} />
+
+                                {/* Cuerpo — Proximidad: datos agrupados */}
+                                <div style={{ padding: '1.25rem 1.5rem', flex: 1 }}>
+                                    {/* Ubicación */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                        <MapPin size={14} color="#94a3b8" />
                                         {[inmueble.barrio, inmueble.municipio].filter(Boolean).join(', ')}
-                                    </p>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                        <button
-                                            onClick={() => handleEditar(inmueble)}
-                                            title="Editar"
-                                            style={{ border: 'none', background: '#eff6ff', color: '#2563eb', borderRadius: '0.375rem', padding: '0.35rem 0.6rem', cursor: 'pointer' }}
-                                        ><Pencil size={15} /></button>
-                                        <button
-                                            onClick={() => handleEliminar(inmueble.id_inmueble)}
-                                            title="Eliminar"
-                                            style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: '0.375rem', padding: '0.35rem 0.6rem', cursor: 'pointer' }}
-                                        ><Trash2 size={15} /></button>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-                                        {inmueble.tipo_inmueble && (
-                                            <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#2563eb', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: '500' }}>
-                                                {inmueble.tipo_inmueble}
-                                            </span>
-                                        )}
-                                        {inmueble.estrato && (
-                                            <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
-                                                Estrato {inmueble.estrato}
-                                            </span>
-                                        )}
+                                        {inmueble.estrato && <span style={{ marginLeft: 'auto', background: '#f1f5f9', color: '#475569', fontSize: '0.75rem', padding: '0.1rem 0.5rem', borderRadius: '999px' }}>E{inmueble.estrato}</span>}
                                     </div>
 
-                                    <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Hab.</span>
-                                            <span style={{ fontWeight: '600' }}>{inmueble.habitaciones ?? '--'}</span>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Baños</span>
-                                            <span style={{ fontWeight: '600' }}>{inmueble.banos ?? '--'}</span>
-                                        </div>
-                                        {inmueble.area_m2 && (
-                                            <div style={{ textAlign: 'center' }}>
-                                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Área</span>
-                                                <span style={{ fontWeight: '600' }}>{inmueble.area_m2}m²</span>
+                                    {/* Specs — Región común: separados del resto */}
+                                    <div style={{
+                                        display: 'flex',
+                                        gap: '0',
+                                        background: '#f8fafc',
+                                        borderRadius: '0.75rem',
+                                        overflow: 'hidden',
+                                        border: '1px solid #f1f5f9',
+                                    }}>
+                                        {[
+                                            { label: 'Hab.', value: inmueble.habitaciones ?? '--' },
+                                            { label: 'Baños', value: inmueble.banos ?? '--' },
+                                            inmueble.area_m2 ? { label: 'Área', value: `${inmueble.area_m2}m²` } : null,
+                                        ].filter(Boolean).map((spec, i, arr) => (
+                                            <div key={i} style={{
+                                                flex: 1,
+                                                textAlign: 'center',
+                                                padding: '0.6rem 0.5rem',
+                                                borderRight: i < arr.length - 1 ? '1px solid #e2e8f0' : 'none',
+                                            }}>
+                                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.15rem' }}>{spec.label}</span>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#1e293b' }}>{spec.value}</span>
                                             </div>
-                                        )}
-                                        {inmueble.parqueaderos > 0 && (
-                                            <div style={{ textAlign: 'center' }}>
-                                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Parq.</span>
-                                                <span style={{ fontWeight: '600' }}>{inmueble.parqueaderos}</span>
-                                            </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
+
+                                {/* Footer — Ley de Fitts: botones grandes y separados */}
+                                <div style={{
+                                    display: 'flex',
+                                    borderTop: '1px solid #f1f5f9',
+                                }}>
+                                    <button
+                                        onClick={() => handleEditar(inmueble)}
+                                        style={{
+                                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            gap: '0.4rem', padding: '0.75rem', border: 'none',
+                                            background: 'transparent', color: '#2563eb', cursor: 'pointer',
+                                            fontSize: '0.85rem', fontWeight: '500',
+                                            borderRight: '1px solid #f1f5f9',
+                                            transition: 'background 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <Pencil size={15} /> Editar
+                                    </button>
+                                    <button
+                                        onClick={() => handleEliminar(inmueble.id_inmueble)}
+                                        style={{
+                                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            gap: '0.4rem', padding: '0.75rem', border: 'none',
+                                            background: 'transparent', color: '#ef4444', cursor: 'pointer',
+                                            fontSize: '0.85rem', fontWeight: '500',
+                                            transition: 'background 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <Trash2 size={15} /> Eliminar
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
