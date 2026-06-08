@@ -76,10 +76,9 @@ const Pagos = () => {
             return direccion.includes(q) || inquilino.includes(q) || contrato.includes(q);
         })();
         const matchEstado = filtroEstado === 'todos'
-            || (filtroEstado === 'pendiente' && p.estado === 1)
+            || (filtroEstado === 'pendiente' && (p.estado === 1 || p.estado === 4)) // Pendiente + Pago Parcial
             || (filtroEstado === 'pagado'    && p.estado === 2)
-            || (filtroEstado === 'mora'      && p.estado === 3)
-            || (filtroEstado === 'parcial'   && p.estado === 4);
+            || (filtroEstado === 'mora'      && p.estado === 3);
         return matchTexto && matchEstado;
     });
 
@@ -112,10 +111,10 @@ const Pagos = () => {
                 {/* Tabs de estado */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {[
-                        { key: 'todos',     label: 'Todos',      color: '#475569', bg: '#f1f5f9' },
-                        { key: 'pendiente', label: 'Pendientes', color: '#854d0e', bg: '#fef9c3' },
-                        { key: 'pagado',    label: 'Pagados',    color: '#166534', bg: '#dcfce7' },
-                        { key: 'mora',      label: 'En Mora',    color: '#991b1b', bg: '#fee2e2' },
+                        { key: 'todos',     label: 'Todos',      color: '#475569', bg: '#f1f5f9',  count: pagos.length },
+                        { key: 'pendiente', label: 'Pendientes', color: '#854d0e', bg: '#fef9c3',  count: pagos.filter(p => p.estado === 1 || p.estado === 4).length },
+                        { key: 'pagado',    label: 'Pagados',    color: '#166534', bg: '#dcfce7',  count: pagos.filter(p => p.estado === 2).length },
+                        { key: 'mora',      label: 'En Mora',    color: '#991b1b', bg: '#fee2e2',  count: pagos.filter(p => p.estado === 3).length },
                     ].map(tab => (
                         <button
                             key={tab.key}
@@ -133,14 +132,7 @@ const Pagos = () => {
                             }}
                         >
                             {tab.label}
-                            <span style={{ marginLeft: '0.35rem', fontSize: '0.75rem' }}>
-                                ({pagos.filter(p =>
-                                    tab.key === 'todos' ? true :
-                                    tab.key === 'pendiente' ? p.estado === 1 :
-                                    tab.key === 'pagado'    ? p.estado === 2 :
-                                    p.estado === 3
-                                ).length})
-                            </span>
+                            <span style={{ marginLeft: '0.35rem', fontSize: '0.75rem' }}>({tab.count})</span>
                         </button>
                     ))}
                 </div>
