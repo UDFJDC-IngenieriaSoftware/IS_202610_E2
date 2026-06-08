@@ -251,7 +251,8 @@ const Contratos = () => {
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Inquilino</th>
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Vigencia</th>
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Valor</th>
-                                <th style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>PDF</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Estado</th>
+                                <th style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -270,12 +271,35 @@ const Contratos = () => {
                                     <td style={{ padding: '1rem', fontWeight: '600', color: '#059669' }}>
                                         ${parseFloat(contrato.valor_mensual).toLocaleString()}
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                        {contrato.url_pdf ? (
-                                            <a href={`http://localhost:3001${contrato.url_pdf}`} target="_blank" rel="noopener noreferrer" className="btn" style={{ color: '#2563eb', padding: '0.4rem' }}>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span className={`badge ${contrato.estado === 1 ? 'badge-success' : 'badge-pending'}`}>
+                                            {contrato.estado === 1 ? 'Activo' : contrato.estado === 2 ? 'Finalizado' : 'Cancelado'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                        {contrato.url_pdf && (
+                                            <a href={`http://localhost:3001${contrato.url_pdf}?token=${localStorage.getItem('token')}`} target="_blank" rel="noopener noreferrer" className="btn" style={{ color: '#2563eb', padding: '0.4rem' }}>
                                                 <ExternalLink size={18} />
                                             </a>
-                                        ) : <span style={{ color: '#cbd5e1' }}>--</span>}
+                                        )}
+                                        {contrato.estado === 1 && (
+                                            <button
+                                                title="Finalizar contrato"
+                                                onClick={async () => {
+                                                    if (!window.confirm('¿Finalizar este contrato?')) return;
+                                                    try {
+                                                        await api.put(`/contratos/${contrato.id_contrato}/finalizar`);
+                                                        showNotify('Contrato finalizado', 'success');
+                                                        fetchData();
+                                                    } catch (e) {
+                                                        showNotify(e.response?.data?.mensaje || 'Error al finalizar');
+                                                    }
+                                                }}
+                                                style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: '0.375rem', padding: '0.35rem 0.7rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}
+                                            >
+                                                Finalizar
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

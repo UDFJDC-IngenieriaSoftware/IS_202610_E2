@@ -1,27 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Home as HomeIcon, X, MapPin } from 'lucide-react';
+import { Plus, Home as HomeIcon, X, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { colombiaData } from '../data/colombia';
+
+const FORM_VACIO = {
+    direccion: '', departamento: '', municipio: '', barrio: '',
+    tipo_inmueble: 'Apartamento', area_m2: '', estrato: 3,
+    habitaciones: 2, banos: 1, deposito: 0, parqueaderos: 0,
+    precio: '', estado_ocupacion: 'disponible'
+};
 
 const Inmuebles = () => {
     const [inmuebles, setInmuebles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        direccion: '',
-        departamento: '',
-        municipio: '',
-        barrio: '',
-        tipo_inmueble: 'Apartamento',
-        area_m2: '',
-        estrato: 3,
-        habitaciones: 2,
-        banos: 1,
-        deposito: 0,
-        parqueaderos: 0,
-        precio: '', // Este campo mapea a valor_mensual sugerido o similar si existe
-        estado_ocupacion: 'disponible'
-    });
+    const [editando, setEditando] = useState(null); // ID del inmueble en edición
+    const [formData, setFormData] = useState(FORM_VACIO);
 
     const fetchInmuebles = async () => {
         try {
@@ -52,22 +46,53 @@ const Inmuebles = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Nota: id_propietario ya no se envía, el backend lo toma del token
-            await api.post('/inmuebles', formData);
+            if (editando) {
+                await api.put(`/inmuebles/${editando}`, formData);
+            } else {
+                await api.post('/inmuebles', formData);
+            }
             setShowModal(false);
-            resetForm();
+            setEditando(null);
+            setFormData(FORM_VACIO);
             fetchInmuebles();
         } catch (error) {
-            alert('Error al crear el inmueble: ' + (error.response?.data?.mensaje || error.message));
+            alert('Error: ' + (error.response?.data?.mensaje || error.message));
+        }
+    };
+
+    const handleEditar = (inmueble) => {
+        setEditando(inmueble.id_inmueble);
+        setFormData({
+            direccion: inmueble.direccion || '',
+            departamento: inmueble.departamento || '',
+            municipio: inmueble.municipio || '',
+            barrio: inmueble.barrio || '',
+            tipo_inmueble: inmueble.tipo_inmueble || 'Apartamento',
+            area_m2: inmueble.area_m2 || '',
+            estrato: inmueble.estrato || 3,
+            habitaciones: inmueble.habitaciones || 2,
+            banos: inmueble.banos || 1,
+            deposito: inmueble.deposito || 0,
+            parqueaderos: inmueble.parqueaderos || 0,
+            precio: '',
+            estado_ocupacion: inmueble.estado_ocupacion || 'disponible'
+        });
+        setShowModal(true);
+    };
+
+    const handleEliminar = async (id) => {
+        if (!window.confirm('¿Seguro que deseas eliminar este inmueble?')) return;
+        try {
+            await api.delete(`/inmuebles/${id}`);
+            fetchInmuebles();
+        } catch (error) {
+            alert('Error al eliminar: ' + (error.response?.data?.mensaje || error.message));
         }
     };
 
     const resetForm = () => {
-        setFormData({
-            direccion: '', departamento: '', municipio: '', barrio: '', tipo_inmueble: 'Apartamento',
-            area_m2: '', estrato: 3, habitaciones: 2, banos: 1, deposito: 0, parqueaderos: 0,
-            precio: '', estado_ocupacion: 'disponible'
-        });
+        setEditando(null);
+        setFormData(FORM_VACIO);
     };
 
     if (loading) return <div className="loading">Cargando tus inmuebles...</div>;
@@ -79,9 +104,9 @@ const Inmuebles = () => {
                     <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>Mis Inmuebles</h2>
                     <p style={{ color: '#64748b' }}>Gestiona tus propiedades registradas.</p>
                 </div>
-                <button 
-                    className="btn btn-primary" 
-                    onClick={() => setShowModal(true)}
+                <button
+                    className="btn btn-primary"
+                    onClick={() => { resetForm(); setShowModal(true); }}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem' }}
                 >
                     <Plus size={18} /> Registrar Propiedad
@@ -114,6 +139,18 @@ const Inmuebles = () => {
                                         <MapPin size={14} />
                                         {[inmueble.barrio, inmueble.municipio].filter(Boolean).join(', ')}
                                     </p>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                        <button
+                                            onClick={() => handleEditar(inmueble)}
+                                            title="Editar"
+                                            style={{ border: 'none', background: '#eff6ff', color: '#2563eb', borderRadius: '0.375rem', padding: '0.35rem 0.6rem', cursor: 'pointer' }}
+                                        ><Pencil size={15} /></button>
+                                        <button
+                                            onClick={() => handleEliminar(inmueble.id_inmueble)}
+                                            title="Eliminar"
+                                            style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: '0.375rem', padding: '0.35rem 0.6rem', cursor: 'pointer' }}
+                                        ><Trash2 size={15} /></button>
+                                    </div>
                                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
                                         {inmueble.tipo_inmueble && (
                                             <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#2563eb', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: '500' }}>
@@ -162,7 +199,7 @@ const Inmuebles = () => {
                     <div className="card modal-content" style={{ width: '95%', maxWidth: '600px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Registrar Nueva Propiedad</h3>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{editando ? 'Editar Propiedad' : 'Registrar Nueva Propiedad'}</h3>
                                 <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Completa los datos técnicos del inmueble.</p>
                             </div>
                             <button className="btn-icon" onClick={() => setShowModal(false)}><X size={20} /></button>
