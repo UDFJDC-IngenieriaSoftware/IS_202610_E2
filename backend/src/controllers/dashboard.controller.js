@@ -146,9 +146,17 @@ const obtenerResumen = async (req, res) => {
         });
         
         // Pagos pendientes
-        const pagosPendientes = await Pago.count({ 
+        const pagosPendientes = await Pago.count({
             where: { estado: 1 },
-            include: [{ model: Contrato, include: [{ model: Inmueble, where: { id_propietario: id_perfil } }] }]
+            include: [{
+                model: Contrato,
+                required: true,
+                include: [{
+                    model: Inmueble,
+                    required: true,
+                    where: { id_propietario: id_perfil }
+                }]
+            }]
         });
         
         res.json({
