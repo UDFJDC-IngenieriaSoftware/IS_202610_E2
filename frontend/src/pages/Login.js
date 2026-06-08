@@ -60,41 +60,20 @@ const Login = () => {
     };
 
     return (
-        <div style={{
-            display: 'flex', minHeight: '100vh',
-            background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)'
-        }}>
-            {/* Panel izquierdo — branding */}
-            <div style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                justifyContent: 'center', padding: '3rem',
-                color: '#fff', display: window.innerWidth < 768 ? 'none' : 'flex'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <img src="/Logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
-                    <span style={{ fontSize: '2rem', fontWeight: '800' }}>Arriendos360</span>
-                </div>
-                <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2rem', lineHeight: 1.6 }}>
-                    Gestiona tus arrendamientos de forma inteligente y sin complicaciones.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {['Contratos digitales', 'Control de pagos y mora', 'Dashboard en tiempo real', 'Motor financiero automático'].map((f, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: 0.85 }}>
-                            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>✓</span>
-                            <span>{f}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
 
-            {/* Panel derecho — formulario */}
+            {/* Panel izquierdo — formulario (como RentRoll) */}
             <div style={{
-                width: '100%', maxWidth: '480px',
-                background: '#fff', display: 'flex',
-                flexDirection: 'column', justifyContent: 'center',
-                padding: '3rem 2.5rem',
-                boxShadow: '-8px 0 32px rgba(0,0,0,0.1)'
+                width: '100%', maxWidth: '520px', background: '#fff',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                padding: '3rem 3.5rem', boxShadow: '4px 0 32px rgba(0,0,0,0.06)'
             }}>
+                {/* Logo */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '2.5rem' }}>
+                    <img src="/Logo.png" alt="Logo" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>Arriendos360</span>
+                </div>
+
                 {/* Toggle login / registro */}
                 <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', marginBottom: '2rem' }}>
                     {['login', 'registro'].map(m => (
@@ -227,6 +206,34 @@ const Login = () => {
                         )}
                     </>
                 )}
+            </div>
+
+            {/* Panel derecho — foto edificio */}
+            <div style={{
+                flex: 1,
+                backgroundImage: 'url(/edificio.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'flex-end',
+            }}>
+                {/* Overlay oscuro */}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.2) 60%, transparent 100%)' }} />
+                {/* Texto sobre la foto */}
+                <div style={{ position: 'relative', padding: '2.5rem', color: '#fff' }}>
+                    <p style={{ fontSize: '1.5rem', fontWeight: '800', lineHeight: 1.3, marginBottom: '0.75rem' }}>
+                        Gestiona tus arrendamientos<br />de forma inteligente
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {['Contratos digitales', 'Control de pagos y mora', 'Dashboard en tiempo real', 'Motor financiero automático'].map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', opacity: 0.9 }}>
+                                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', flexShrink: 0 }}>✓</div>
+                                <span style={{ fontSize: '0.9rem' }}>{f}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );

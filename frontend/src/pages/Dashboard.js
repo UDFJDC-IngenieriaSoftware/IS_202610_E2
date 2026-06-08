@@ -18,22 +18,18 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [resumen, setResumen]       = useState(null);
     const [pagos, setPagos]           = useState([]);
-    const [contratos, setContratos]   = useState([]);
     const [loading, setLoading]       = useState(true);
     const [ejecutando, setEjecutando] = useState(false);
     const [motorMsg, setMotorMsg]     = useState('');
-    const [panelRow, setPanelRow]     = useState(null); // fila seleccionada del rent roll
 
     const fetchData = async () => {
         try {
-            const [resRes, pagosRes, contratosRes] = await Promise.all([
+            const [resRes, pagosRes] = await Promise.all([
                 api.get('/dashboard/resumen'),
                 api.get('/pagos'),
-                api.get('/contratos'),
             ]);
             setResumen(resRes.data);
             setPagos(pagosRes.data);
-            setContratos(contratosRes.data);
         } catch (error) {
             console.error('Error al cargar dashboard:', error);
         } finally {
@@ -106,24 +102,6 @@ const Dashboard = () => {
         1: { label: 'Pendiente',    bg: '#f8fafc', border: '#e2e8f0', badge: '#f1f5f9', badgeText: '#475569', dot: '#94a3b8' },
     }[estado] || { label: '—', bg: '#f8fafc', border: '#e2e8f0', badge: '#f1f5f9', badgeText: '#475569', dot: '#cbd5e1' });
 
-    // ── Rent Roll: cruzar contratos con el último pago de cada uno ──
-    const rentRoll = contratos
-        .filter(c => c.estado === 1)
-        .map(c => {
-            const pagosContrato = pagos
-                .filter(p => p.id_contrato === c.id_contrato)
-                .sort((a, b) => new Date(b.mes_correspondiente) - new Date(a.mes_correspondiente));
-            const ultimoPago = pagosContrato[0];
-            return { contrato: c, ultimoPago };
-        });
-
-    // Historial de pagos para el panel lateral
-    const historialPanel = panelRow
-        ? pagos
-            .filter(p => p.id_contrato === panelRow.contrato.id_contrato)
-            .sort((a, b) => new Date(b.mes_correspondiente) - new Date(a.mes_correspondiente))
-            .slice(0, 6)
-        : [];
 
     return (
         <div className="fade-in">
@@ -224,168 +202,6 @@ const Dashboard = () => {
             )}
 
             {/* ── RENT ROLL ── */}
-            {rentRoll.length > 0 && (
-                <div className="card" style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
-                        <div>
-                            <h4 style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>
-                                📋 Rent Roll
-                                <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', fontWeight: '600', background: '#dbeafe', color: '#1d4ed8', padding: '0.1rem 0.5rem', borderRadius: '999px' }}>
-                                    {rentRoll.length} propiedad{rentRoll.length > 1 ? 'es' : ''}
-                                </span>
-                            </h4>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.1rem' }}>Haz clic en una fila para ver el detalle</p>
-                        </div>
-                        <button onClick={() => navigate('/contratos')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.4rem 0.875rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600', color: '#475569' }}>
-                            Ver contratos <ArrowRight size={14} />
-                        </button>
-                    </div>
-
-                    {/* Tabla */}
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead style={{ background: '#f8fafc' }}>
-                            <tr>
-                                <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inmueble</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquilino</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Vigencia</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Canon/mes</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Último Cobro</th>
-                                <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.72rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rentRoll.map(({ contrato, ultimoPago }, idx) => {
-                                const cfg = getEstadoConfig(ultimoPago?.estado ?? null);
-                                const selected = panelRow?.contrato.id_contrato === contrato.id_contrato;
-                                return (
-                                    <tr key={contrato.id_contrato}
-                                        onClick={() => setPanelRow(selected ? null : { contrato, ultimoPago })}
-                                        style={{
-                                            borderBottom: '1px solid #f1f5f9',
-                                            cursor: 'pointer',
-                                            background: selected ? '#eff6ff' : 'transparent',
-                                            transition: 'background 0.15s'
-                                        }}
-                                        onMouseEnter={e => { if (!selected) e.currentTarget.style.background = '#f8fafc'; }}
-                                        onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent'; }}>
-
-                                        <td style={{ padding: '0.875rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '3px', height: '32px', borderRadius: '2px', background: cfg.dot, flexShrink: 0 }} />
-                                                <div>
-                                                    <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#0f172a' }}>{contrato.Inmueble?.direccion}</div>
-                                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{contrato.Inmueble?.municipio} · {contrato.Inmueble?.tipo_inmueble}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.875rem 1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                <User size={13} color="#94a3b8" />
-                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{contrato.id_inquilino}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.875rem 1rem', fontSize: '0.82rem', color: '#64748b' }}>
-                                            {new Date(contrato.fecha_inicio).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                            {' – '}
-                                            {new Date(contrato.fecha_fin).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                        </td>
-                                        <td style={{ padding: '0.875rem 1rem', fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>
-                                            ${parseFloat(contrato.valor_mensual).toLocaleString()}
-                                        </td>
-                                        <td style={{ padding: '0.875rem 1rem', fontSize: '0.82rem', color: '#64748b' }}>
-                                            {ultimoPago
-                                                ? new Date(ultimoPago.mes_correspondiente).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
-                                                : '—'}
-                                        </td>
-                                        <td style={{ padding: '0.875rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: '700', background: cfg.badge, color: cfg.badgeText, padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
-                                                    {ultimoPago ? cfg.label : 'Sin cobros'}
-                                                </span>
-                                                <ChevronRight size={16} color={selected ? '#2563eb' : '#cbd5e1'} style={{ transform: selected ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-
-                    {/* Panel de detalle deslizable */}
-                    {panelRow && (
-                        <div style={{
-                            borderTop: '2px solid #2563eb',
-                            background: '#fff',
-                            padding: '1.5rem',
-                            animation: 'slideUp 0.2s ease'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                        <MapPin size={16} color="#2563eb" />
-                                        <h4 style={{ fontWeight: '800', color: '#0f172a', fontSize: '1rem' }}>{panelRow.contrato.Inmueble?.direccion}</h4>
-                                    </div>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                        {panelRow.contrato.Inmueble?.municipio} · {panelRow.contrato.Inmueble?.tipo_inmueble} · Estrato {panelRow.contrato.Inmueble?.estrato}
-                                    </p>
-                                </div>
-                                <button onClick={() => setPanelRow(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer' }}>
-                                    <X size={18} color="#475569" />
-                                </button>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                                {/* Info contrato */}
-                                <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1rem' }}>
-                                    <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Contrato Activo</p>
-                                    {[
-                                        { icon: <User size={14} />,      label: 'Inquilino',   value: panelRow.contrato.id_inquilino },
-                                        { icon: <Calendar size={14} />,  label: 'Inicio',      value: new Date(panelRow.contrato.fecha_inicio).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) },
-                                        { icon: <Calendar size={14} />,  label: 'Vencimiento', value: new Date(panelRow.contrato.fecha_fin).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) },
-                                        { icon: <TrendingUp size={14} />, label: 'Canon/mes',   value: '$' + parseFloat(panelRow.contrato.valor_mensual).toLocaleString() },
-                                    ].map((item, i) => (
-                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: i < 3 ? '1px solid #f1f5f9' : 'none' }}>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>{item.icon}{item.label}</span>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#0f172a' }}>{item.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Historial de pagos */}
-                                <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1rem' }}>
-                                    <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Últimos Cobros</p>
-                                    {historialPanel.length === 0
-                                        ? <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>Sin cobros registrados</p>
-                                        : historialPanel.map(p => {
-                                            const c = getEstadoConfig(p.estado);
-                                            return (
-                                                <div key={p.id_pago} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        {p.estado === 2 ? <CheckCircle size={13} color="#22c55e" /> : <Clock size={13} color={c.dot} />}
-                                                        <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                                                            {new Date(p.mes_correspondiente).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#0f172a' }}>${parseFloat(p.monto_total).toLocaleString()}</span>
-                                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', background: c.badge, color: c.badgeText, padding: '0.1rem 0.4rem', borderRadius: '999px' }}>{c.label}</span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    }
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                                <button onClick={() => navigate('/pagos')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    Gestionar pagos <ArrowRight size={15} />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Todo al día */}
             {requierenAtencion.length === 0 && pagos.length > 0 && (
