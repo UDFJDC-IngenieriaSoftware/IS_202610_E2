@@ -74,33 +74,32 @@ const Login = () => {
                     <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>Arriendos360</span>
                 </div>
 
-                {/* Toggle login / registro */}
-                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', marginBottom: '2rem' }}>
-                    {['login', 'registro'].map(m => (
-                        <button key={m} onClick={() => { setModo(m); setError(''); setRegError(''); setRegExito(false); }}
+                {/* Toggle — solo propietarios se registran */}
+                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', marginBottom: '1.5rem' }}>
+                    {[
+                        { key: 'login',    label: 'Iniciar sesión' },
+                        { key: 'registro', label: 'Soy propietario' },
+                    ].map(m => (
+                        <button key={m.key} onClick={() => { setModo(m.key); setError(''); setRegError(''); setRegExito(false); }}
                             style={{
                                 flex: 1, padding: '0.6rem', border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
                                 fontWeight: '600', fontSize: '0.9rem', transition: 'all 0.2s',
-                                background: modo === m ? '#fff' : 'transparent',
-                                color: modo === m ? '#2563eb' : '#64748b',
-                                boxShadow: modo === m ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                                background: modo === m.key ? '#fff' : 'transparent',
+                                color: modo === m.key ? '#2563eb' : '#64748b',
+                                boxShadow: modo === m.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                             }}>
-                            {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
+                            {m.label}
                         </button>
                     ))}
                 </div>
 
                 {/* Info para inquilinos */}
                 {modo === 'login' && (
-                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '0.75rem', padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
-                        <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0369a1', marginBottom: '0.4rem' }}>👤 ¿Eres inquilino?</p>
-                        <p style={{ fontSize: '0.78rem', color: '#0c4a6e', lineHeight: 1.5 }}>
-                            Tu propietario te ha registrado. Ingresa con:
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginBottom: '0.25rem' }}>👤 ¿Eres inquilino?</p>
+                        <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+                            Solicita tus credenciales de acceso a tu arrendador.
                         </p>
-                        <ul style={{ fontSize: '0.78rem', color: '#0c4a6e', marginTop: '0.35rem', paddingLeft: '1rem', lineHeight: 1.8 }}>
-                            <li><strong>Usuario:</strong> el correo que le diste a tu propietario</li>
-                            <li><strong>Contraseña:</strong> tu número de cédula</li>
-                        </ul>
                     </div>
                 )}
 
@@ -137,7 +136,7 @@ const Login = () => {
                         </form>
 
                         <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-                            ¿No tienes cuenta?{' '}
+                            ¿Eres propietario y no tienes cuenta?{' '}
                             <button onClick={() => setModo('registro')} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}>
                                 Regístrate aquí
                             </button>
