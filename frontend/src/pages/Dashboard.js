@@ -13,6 +13,8 @@ const Dashboard = () => {
     const [resumen, setResumen] = useState(null);
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [ejecutando, setEjecutando] = useState(false);
+    const [motorMsg, setMotorMsg] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -31,6 +33,26 @@ const Dashboard = () => {
         };
         fetchData();
     }, []);
+
+    const ejecutarMotor = async () => {
+        setEjecutando(true);
+        setMotorMsg('');
+        try {
+            const res = await api.post('/admin/ejecutar-motor');
+            setMotorMsg('✅ ' + res.data.mensaje);
+            // Recargar datos
+            const [resRes, pagosRes] = await Promise.all([
+                api.get('/dashboard/resumen'),
+                api.get('/pagos')
+            ]);
+            setResumen(resRes.data);
+            setPagos(pagosRes.data);
+        } catch (error) {
+            setMotorMsg('❌ Error al ejecutar motor');
+        } finally {
+            setEjecutando(false);
+        }
+    };
 
     if (loading) return <div className="loading">Cargando dashboard...</div>;
 
@@ -91,9 +113,22 @@ const Dashboard = () => {
 
     return (
         <div className="fade-in">
-            <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>Dashboard</h2>
-                <p style={{ color: '#64748b' }}>Resumen general de tus arrendamientos.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                    <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>Dashboard</h2>
+                    <p style={{ color: '#64748b' }}>Resumen general de tus arrendamientos.</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                    <button
+                        onClick={ejecutarMotor}
+                        disabled={ejecutando}
+                        className="btn btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        {ejecutando ? '⏳ Ejecutando...' : '⚡ Ejecutar Motor Financiero'}
+                    </button>
+                    {motorMsg && <span style={{ fontSize: '0.8rem', color: motorMsg.startsWith('✅') ? '#16a34a' : '#ef4444' }}>{motorMsg}</span>}
+                </div>
             </div>
 
             {/* KPIs */}
