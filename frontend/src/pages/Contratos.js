@@ -101,7 +101,7 @@ const Contratos = () => {
             await api.post('/auth/register', {
                 ...tenantData,
                 documento: idInquilino,
-                contrasena: 'inquilino123',
+                contrasena: idInquilino, // La cédula es la contraseña inicial
                 rol: 'inquilino'
             });
             setShowTenantModal(false);

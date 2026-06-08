@@ -90,6 +90,20 @@ const Login = () => {
                     ))}
                 </div>
 
+                {/* Info para inquilinos */}
+                {modo === 'login' && (
+                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '0.75rem', padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0369a1', marginBottom: '0.4rem' }}>👤 ¿Eres inquilino?</p>
+                        <p style={{ fontSize: '0.78rem', color: '#0c4a6e', lineHeight: 1.5 }}>
+                            Tu propietario te ha registrado. Ingresa con:
+                        </p>
+                        <ul style={{ fontSize: '0.78rem', color: '#0c4a6e', marginTop: '0.35rem', paddingLeft: '1rem', lineHeight: 1.8 }}>
+                            <li><strong>Usuario:</strong> el correo que le diste a tu propietario</li>
+                            <li><strong>Contraseña:</strong> tu número de cédula</li>
+                        </ul>
+                    </div>
+                )}
+
                 {/* LOGIN */}
                 {modo === 'login' && (
                     <>
