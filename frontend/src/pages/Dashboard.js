@@ -229,7 +229,7 @@ const Dashboard = () => {
                                     onClick={() => navigate('/pagos')}
                                     className="btn btn-primary"
                                     style={{ flexShrink: 0, padding: '0.5rem 1rem', fontSize: '0.82rem', boxShadow: esMora ? '0 2px 8px rgba(239,68,68,0.3)' : undefined, background: esMora ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : undefined }}>
-                                    Pagar →
+                                    Registrar Pago →
                                 </button>
                             </div>
                         );

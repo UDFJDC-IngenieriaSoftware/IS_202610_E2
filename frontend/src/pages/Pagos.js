@@ -206,6 +206,11 @@ const Pagos = () => {
                                                             Registrar Pago
                                                         </button>
                                                     )}
+                                                    {!esPropietario && pago.estado !== 2 && (
+                                                        <span style={{ fontSize: '0.78rem', color: '#f59e0b', fontWeight: '600', background: '#fef9c3', padding: '0.3rem 0.6rem', borderRadius: '0.375rem', whiteSpace: 'nowrap' }}>
+                                                            ⏳ Pendiente
+                                                        </span>
+                                                    )}
                                                     <button className="btn-icon-subtle" title="Ver abonos" onClick={() => { setSelectedPago(pago); fetchAbonos(pago.id_pago); }}>
                                                         <History size={16} />
                                                     </button>
