@@ -3,39 +3,229 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const Login = () => {
+    const [modo, setModo] = useState('login'); // 'login' | 'registro'
+    const navigate = useNavigate();
+
+    // Login
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
     const [error, setError] = useState('');
-    const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    // Registro
+    const [regData, setRegData] = useState({
+        nombres: '', apellidos: '', documento: '',
+        correo: '', telefono: '', contrasena: '', confirmar: ''
+    });
+    const [regError, setRegError] = useState('');
+    const [regExito, setRegExito] = useState(false);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
         try {
             const response = await api.post('/auth/login', { correo, contrasena });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.mensaje || 'Error al iniciar sesión');
+            setError(err.response?.data?.mensaje || 'Correo o contraseña incorrectos');
+        }
+    };
+
+    const handleRegistro = async (e) => {
+        e.preventDefault();
+        setRegError('');
+        if (regData.contrasena !== regData.confirmar) {
+            setRegError('Las contraseñas no coinciden');
+            return;
+        }
+        if (regData.contrasena.length < 6) {
+            setRegError('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+        try {
+            await api.post('/auth/register', {
+                nombres: regData.nombres,
+                apellidos: regData.apellidos,
+                documento: regData.documento,
+                correo: regData.correo,
+                telefono: regData.telefono,
+                contrasena: regData.contrasena,
+                rol: 'propietario'
+            });
+            setRegExito(true);
+        } catch (err) {
+            setRegError(err.response?.data?.mensaje || 'Error al registrarse');
         }
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
-            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2563eb' }}>Arriendos360</h2>
-                {error && <div className="badge badge-error" style={{ display: 'block', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
-                <form onSubmit={handleSubmit} style={{ maxWidth: 'none' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label>Correo Electrónico</label>
-                        <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label>Contraseña</label>
-                        <input type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Ingresar</button>
-                </form>
+        <div style={{
+            display: 'flex', minHeight: '100vh',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)'
+        }}>
+            {/* Panel izquierdo — branding */}
+            <div style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                justifyContent: 'center', padding: '3rem',
+                color: '#fff', display: window.innerWidth < 768 ? 'none' : 'flex'
+            }}>
+                <div style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1rem' }}>
+                    🏠 Arriendos360
+                </div>
+                <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2rem', lineHeight: 1.6 }}>
+                    Gestiona tus arrendamientos de forma inteligente y sin complicaciones.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {['Contratos digitales', 'Control de pagos y mora', 'Dashboard en tiempo real', 'Motor financiero automático'].map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: 0.85 }}>
+                            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>✓</span>
+                            <span>{f}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Panel derecho — formulario */}
+            <div style={{
+                width: '100%', maxWidth: '480px',
+                background: '#fff', display: 'flex',
+                flexDirection: 'column', justifyContent: 'center',
+                padding: '3rem 2.5rem',
+                boxShadow: '-8px 0 32px rgba(0,0,0,0.1)'
+            }}>
+                {/* Toggle login / registro */}
+                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', marginBottom: '2rem' }}>
+                    {['login', 'registro'].map(m => (
+                        <button key={m} onClick={() => { setModo(m); setError(''); setRegError(''); setRegExito(false); }}
+                            style={{
+                                flex: 1, padding: '0.6rem', border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+                                fontWeight: '600', fontSize: '0.9rem', transition: 'all 0.2s',
+                                background: modo === m ? '#fff' : 'transparent',
+                                color: modo === m ? '#2563eb' : '#64748b',
+                                boxShadow: modo === m ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                            }}>
+                            {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* LOGIN */}
+                {modo === 'login' && (
+                    <>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Bienvenido de nuevo</h2>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Ingresa tus credenciales para continuar</p>
+
+                        {error && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
+
+                        <form onSubmit={handleLogin} style={{ maxWidth: 'none', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.4rem' }}>Correo Electrónico</label>
+                                <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} required
+                                    placeholder="tu@correo.com"
+                                    style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.4rem' }}>Contraseña</label>
+                                <input type="password" value={contrasena} onChange={e => setContrasena(e.target.value)} required
+                                    placeholder="••••••••"
+                                    style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                            <button type="submit" style={{
+                                width: '100%', padding: '0.75rem',
+                                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                                color: '#fff', border: 'none', borderRadius: '0.5rem',
+                                fontWeight: '600', fontSize: '1rem', cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
+                            }}>
+                                Ingresar
+                            </button>
+                        </form>
+
+                        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
+                            ¿No tienes cuenta?{' '}
+                            <button onClick={() => setModo('registro')} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}>
+                                Regístrate aquí
+                            </button>
+                        </p>
+                    </>
+                )}
+
+                {/* REGISTRO */}
+                {modo === 'registro' && (
+                    <>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Crear cuenta</h2>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Regístrate como propietario para gestionar tus inmuebles</p>
+
+                        {regExito ? (
+                            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                                <h3 style={{ color: '#166534', marginBottom: '0.5rem' }}>¡Cuenta creada!</h3>
+                                <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Ya puedes iniciar sesión con tu correo y contraseña.</p>
+                                <button onClick={() => { setModo('login'); setRegExito(false); }}
+                                    style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.65rem 1.5rem', fontWeight: '600', cursor: 'pointer' }}>
+                                    Ir al inicio de sesión
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                {regError && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>{regError}</div>}
+                                <form onSubmit={handleRegistro} style={{ maxWidth: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Nombres</label>
+                                            <input value={regData.nombres} onChange={e => setRegData({...regData, nombres: e.target.value})} required placeholder="Juan"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Apellidos</label>
+                                            <input value={regData.apellidos} onChange={e => setRegData({...regData, apellidos: e.target.value})} required placeholder="Pérez"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Cédula</label>
+                                            <input value={regData.documento} onChange={e => setRegData({...regData, documento: e.target.value})} required placeholder="10203040"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Teléfono</label>
+                                            <input value={regData.telefono} onChange={e => setRegData({...regData, telefono: e.target.value})} placeholder="3001234567"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Correo Electrónico</label>
+                                        <input type="email" value={regData.correo} onChange={e => setRegData({...regData, correo: e.target.value})} required placeholder="tu@correo.com"
+                                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Contraseña</label>
+                                            <input type="password" value={regData.contrasena} onChange={e => setRegData({...regData, contrasena: e.target.value})} required placeholder="Min. 6 caracteres"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.3rem' }}>Confirmar</label>
+                                            <input type="password" value={regData.confirmar} onChange={e => setRegData({...regData, confirmar: e.target.value})} required placeholder="Repite la contraseña"
+                                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                        </div>
+                                    </div>
+                                    <button type="submit" style={{
+                                        width: '100%', padding: '0.75rem', marginTop: '0.5rem',
+                                        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                                        color: '#fff', border: 'none', borderRadius: '0.5rem',
+                                        fontWeight: '600', fontSize: '1rem', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
+                                    }}>
+                                        Crear cuenta
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
