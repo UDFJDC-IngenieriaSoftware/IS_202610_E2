@@ -205,9 +205,9 @@ const Pagos = () => {
                                                 <History size={18} />
                                             </button>
                                             <button 
-                                                className="btn-icon-subtle" 
+                                                className="btn-icon-subtle"
                                                 title="Descargar Recibo Mensual"
-                                                onClick={() => window.open(`http://localhost:3001/api/pagos/${pago.id_pago}/recibo`)}
+                                                onClick={() => window.open(`http://localhost:3001/api/pagos/${pago.id_pago}/recibo?token=${localStorage.getItem('token')}`)}
                                             >
                                                 <Download size={18} />
                                             </button>
@@ -290,7 +290,7 @@ const Pagos = () => {
                                         <button 
                                             className="btn-icon-subtle" 
                                             title="Descargar Comprobante"
-                                            onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${abono.id_abono}`)}
+                                            onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${abono.id_abono}?token=${localStorage.getItem('token')}`)}
                                         >
                                             <Receipt size={18} />
                                         </button>

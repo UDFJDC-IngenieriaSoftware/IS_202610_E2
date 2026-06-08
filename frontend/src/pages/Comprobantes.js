@@ -86,7 +86,7 @@ const Comprobantes = () => {
                                 <span style={{ fontSize: '0.875rem', color: '#64748b' }}>{abono.tipo_transaccion}</span>
                                 <button 
                                     className="btn btn-primary" 
-                                    onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${abono.id_abono}`)}
+                                    onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${abono.id_abono}?token=${localStorage.getItem('token')}`)}
                                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                 >
                                     <Download size={14} /> Comprobante
