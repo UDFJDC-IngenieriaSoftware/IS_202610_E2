@@ -110,24 +110,44 @@ const Inmuebles = () => {
                                             {inmueble.estado_ocupacion}
                                         </span>
                                     </div>
-                                    <p style={{ color: '#64748b', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <MapPin size={14} /> {inmueble.municipio}, {inmueble.departamento}
+                                    <p style={{ color: '#64748b', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
+                                        <MapPin size={14} />
+                                        {[inmueble.barrio, inmueble.municipio].filter(Boolean).join(', ')}
                                     </p>
-                                    <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.25rem' }}>{inmueble.barrio}</p>
-                                    
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                                        {inmueble.tipo_inmueble && (
+                                            <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#2563eb', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: '500' }}>
+                                                {inmueble.tipo_inmueble}
+                                            </span>
+                                        )}
+                                        {inmueble.estrato && (
+                                            <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
+                                                Estrato {inmueble.estrato}
+                                            </span>
+                                        )}
+                                    </div>
+
                                     <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                                         <div style={{ textAlign: 'center' }}>
                                             <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Hab.</span>
-                                            <span style={{ fontWeight: '600' }}>{inmueble.habitaciones}</span>
+                                            <span style={{ fontWeight: '600' }}>{inmueble.habitaciones ?? '--'}</span>
                                         </div>
                                         <div style={{ textAlign: 'center' }}>
                                             <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Baños</span>
-                                            <span style={{ fontWeight: '600' }}>{inmueble.banos}</span>
+                                            <span style={{ fontWeight: '600' }}>{inmueble.banos ?? '--'}</span>
                                         </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Área</span>
-                                            <span style={{ fontWeight: '600' }}>{inmueble.area_m2}m²</span>
-                                        </div>
+                                        {inmueble.area_m2 && (
+                                            <div style={{ textAlign: 'center' }}>
+                                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Área</span>
+                                                <span style={{ fontWeight: '600' }}>{inmueble.area_m2}m²</span>
+                                            </div>
+                                        )}
+                                        {inmueble.parqueaderos > 0 && (
+                                            <div style={{ textAlign: 'center' }}>
+                                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Parq.</span>
+                                                <span style={{ fontWeight: '600' }}>{inmueble.parqueaderos}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
