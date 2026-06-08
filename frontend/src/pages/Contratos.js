@@ -263,7 +263,7 @@ const Contratos = () => {
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Vigencia</th>
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Valor</th>
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600' }}>Estado</th>
-                                <th style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>Acciones</th>
+                                {esPropietario && <th style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>Acciones</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -287,7 +287,7 @@ const Contratos = () => {
                                             {contrato.estado === 1 ? 'Activo' : contrato.estado === 2 ? 'Finalizado' : 'Cancelado'}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                    {esPropietario && <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                         {contrato.url_pdf && (
                                             <a href={`http://localhost:3001${contrato.url_pdf}?token=${localStorage.getItem('token')}`} target="_blank" rel="noopener noreferrer" className="btn" style={{ color: '#2563eb', padding: '0.4rem' }}>
                                                 <ExternalLink size={18} />
@@ -311,7 +311,7 @@ const Contratos = () => {
                                                 Finalizar
                                             </button>
                                         )}
-                                    </td>
+                                    </td>}
                                 </tr>
                             ))}
                         </tbody>
