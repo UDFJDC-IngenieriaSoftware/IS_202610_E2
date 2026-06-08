@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Home as HomeIcon, X } from 'lucide-react';
+import { Plus, Home as HomeIcon, X, MapPin } from 'lucide-react';
+import { colombiaData } from '../data/colombia';
 
 const Inmuebles = () => {
     const [inmuebles, setInmuebles] = useState([]);
@@ -8,13 +9,17 @@ const Inmuebles = () => {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
         direccion: '',
+        departamento: '',
         municipio: '',
         barrio: '',
         tipo_inmueble: 'Apartamento',
+        area_m2: '',
         estrato: 3,
         habitaciones: 2,
         banos: 1,
-        precio: '',
+        deposito: 0,
+        parqueaderos: 0,
+        precio: '', // Este campo mapea a valor_mensual sugerido o similar si existe
         estado_ocupacion: 'disponible'
     });
 
@@ -34,118 +39,210 @@ const Inmuebles = () => {
     }, []);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        
+        // Si cambia el departamento, resetear el municipio
+        if (name === 'departamento') {
+            setFormData({ ...formData, [name]: value, municipio: '' });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Nota: id_propietario ya no se envía, el backend lo toma del token
             await api.post('/inmuebles', formData);
             setShowModal(false);
-            setFormData({
-                direccion: '', municipio: '', barrio: '', tipo_inmueble: 'Apartamento',
-                estrato: 3, habitaciones: 2, banos: 1, precio: '', estado_ocupacion: 'disponible'
-            });
+            resetForm();
             fetchInmuebles();
         } catch (error) {
             alert('Error al crear el inmueble: ' + (error.response?.data?.mensaje || error.message));
         }
     };
 
-    if (loading) return <div>Cargando inmuebles...</div>;
+    const resetForm = () => {
+        setFormData({
+            direccion: '', departamento: '', municipio: '', barrio: '', tipo_inmueble: 'Apartamento',
+            area_m2: '', estrato: 3, habitaciones: 2, banos: 1, deposito: 0, parqueaderos: 0,
+            precio: '', estado_ocupacion: 'disponible'
+        });
+    };
+
+    if (loading) return <div className="loading">Cargando tus inmuebles...</div>;
 
     return (
-        <div>
+        <div className="fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h3>Mis Inmuebles</h3>
+                <div>
+                    <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>Mis Inmuebles</h2>
+                    <p style={{ color: '#64748b' }}>Gestiona tus propiedades registradas.</p>
+                </div>
                 <button 
                     className="btn btn-primary" 
                     onClick={() => setShowModal(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem' }}
                 >
-                    <Plus size={18} /> Nuevo Inmueble
+                    <Plus size={18} /> Registrar Propiedad
                 </button>
             </div>
 
-            <div className="grid">
-                {inmuebles.map((inmueble) => (
-                    <div key={inmueble.id_inmueble} className="card">
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'start' }}>
-                            <div style={{ background: '#eff6ff', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                                <HomeIcon size={24} color="#2563eb" />
-                            </div>
-                            <div>
-                                <h4 style={{ marginBottom: '0.25rem' }}>{inmueble.direccion}</h4>
-                                <p style={{ color: '#64748b', fontSize: '0.875rem' }}>{inmueble.municipio}, {inmueble.barrio}</p>
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                    <span className={`badge ${inmueble.estado_ocupacion === 'disponible' ? 'badge-success' : 'badge-pending'}`}>
-                                        {inmueble.estado_ocupacion}
-                                    </span>
-                                    <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
-                                        Estrato {inmueble.estrato}
-                                    </span>
+            {inmuebles.length === 0 ? (
+                <div className="card" style={{ textAlign: 'center', padding: '4rem' }}>
+                    <HomeIcon size={48} color="#cbd5e1" style={{ margin: '0 auto 1rem' }} />
+                    <p style={{ color: '#64748b' }}>No tienes inmuebles registrados todavía.</p>
+                </div>
+            ) : (
+                <div className="grid">
+                    {inmuebles.map((inmueble) => (
+                        <div key={inmueble.id_inmueble} className="card property-card">
+                            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'start' }}>
+                                <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem' }}>
+                                    <HomeIcon size={28} color="#2563eb" />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                        <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>
+                                            {inmueble.direccion}
+                                        </h4>
+                                        <span className={`badge ${inmueble.estado_ocupacion === 'disponible' ? 'badge-success' : 'badge-pending'}`}>
+                                            {inmueble.estado_ocupacion}
+                                        </span>
+                                    </div>
+                                    <p style={{ color: '#64748b', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                        <MapPin size={14} /> {inmueble.municipio}, {inmueble.departamento}
+                                    </p>
+                                    <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.25rem' }}>{inmueble.barrio}</p>
+                                    
+                                    <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Hab.</span>
+                                            <span style={{ fontWeight: '600' }}>{inmueble.habitaciones}</span>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Baños</span>
+                                            <span style={{ fontWeight: '600' }}>{inmueble.banos}</span>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8' }}>Área</span>
+                                            <span style={{ fontWeight: '600' }}>{inmueble.area_m2}m²</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Modal de Nuevo Inmueble */}
             {showModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                    background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center',
-                    alignItems: 'center', zIndex: 1000
-                }}>
-                    <div className="card" style={{ width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-overlay">
+                    <div className="card modal-content" style={{ width: '95%', maxWidth: '600px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h4>Registrar Nuevo Inmueble</h4>
-                            <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowModal(false)} />
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Registrar Nueva Propiedad</h3>
+                                <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Completa los datos técnicos del inmueble.</p>
+                            </div>
+                            <button className="btn-icon" onClick={() => setShowModal(false)}><X size={20} /></button>
                         </div>
+                        
                         <form onSubmit={handleSubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div style={{ gridColumn: 'span 2' }}>
-                                    <label>Dirección</label>
-                                    <input name="direccion" value={formData.direccion} onChange={handleChange} required />
+                                    <label className="form-label">Dirección Exacta</label>
+                                    <input 
+                                        className="form-control"
+                                        name="direccion" 
+                                        placeholder="Ej: Calle 10 # 45-20"
+                                        value={formData.direccion} 
+                                        onChange={handleChange} 
+                                        required 
+                                    />
                                 </div>
+
                                 <div>
-                                    <label>Municipio</label>
-                                    <input name="municipio" value={formData.municipio} onChange={handleChange} required />
+                                    <label className="form-label">Departamento</label>
+                                    <select 
+                                        className="form-control"
+                                        name="departamento" 
+                                        value={formData.departamento} 
+                                        onChange={handleChange} 
+                                        required
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {Object.keys(colombiaData).sort().map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
                                 </div>
+
                                 <div>
-                                    <label>Barrio</label>
-                                    <input name="barrio" value={formData.barrio} onChange={handleChange} required />
+                                    <label className="form-label">Municipio</label>
+                                    <select 
+                                        className="form-control"
+                                        name="municipio" 
+                                        value={formData.municipio} 
+                                        onChange={handleChange} 
+                                        required
+                                        disabled={!formData.departamento}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {formData.departamento && colombiaData[formData.departamento].sort().map(muni => (
+                                            <option key={muni} value={muni}>{muni}</option>
+                                        ))}
+                                    </select>
                                 </div>
+
                                 <div>
-                                    <label>Tipo</label>
-                                    <select name="tipo_inmueble" value={formData.tipo_inmueble} onChange={handleChange}>
+                                    <label className="form-label">Barrio</label>
+                                    <input className="form-control" name="barrio" value={formData.barrio} onChange={handleChange} required />
+                                </div>
+
+                                <div>
+                                    <label className="form-label">Tipo de Inmueble</label>
+                                    <select className="form-control" name="tipo_inmueble" value={formData.tipo_inmueble} onChange={handleChange}>
                                         <option value="Apartamento">Apartamento</option>
                                         <option value="Casa">Casa</option>
                                         <option value="Local">Local</option>
-                                        <option value="Finca">Finca</option>
+                                        <option value="Oficina">Oficina</option>
+                                        <option value="Bodega">Bodega</option>
                                     </select>
                                 </div>
+
                                 <div>
-                                    <label>Estrato</label>
-                                    <input type="number" name="estrato" value={formData.estrato} onChange={handleChange} />
+                                    <label className="form-label">Área (m²)</label>
+                                    <input className="form-control" type="number" name="area_m2" value={formData.area_m2} onChange={handleChange} required />
                                 </div>
+
                                 <div>
-                                    <label>Habitaciones</label>
-                                    <input type="number" name="habitaciones" min="0" value={formData.habitaciones} onChange={handleChange} />
+                                    <label className="form-label">Estrato</label>
+                                    <select className="form-control" name="estrato" value={formData.estrato} onChange={handleChange}>
+                                        {[1,2,3,4,5,6].map(e => <option key={e} value={e}>{e}</option>)}
+                                    </select>
                                 </div>
+
                                 <div>
-                                    <label>Baños</label>
-                                    <input type="number" name="banos" min="0" value={formData.banos} onChange={handleChange} />
+                                    <label className="form-label">Habitaciones</label>
+                                    <input className="form-control" type="number" name="habitaciones" min="0" value={formData.habitaciones} onChange={handleChange} />
                                 </div>
+
+                                <div>
+                                    <label className="form-label">Baños</label>
+                                    <input className="form-control" type="number" name="banos" min="0" value={formData.banos} onChange={handleChange} />
+                                </div>
+                                
                                 <div style={{ gridColumn: 'span 2' }}>
-                                    <label>Precio Mensual Sugerido ($)</label>
-                                    <input type="number" name="precio" min="0" value={formData.precio} onChange={handleChange} required />
+                                    <hr style={{ margin: '0.5rem 0', border: '0', borderTop: '1px solid #f1f5f9' }} />
+                                </div>
+
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                                        Registrar Propiedad
+                                    </button>
                                 </div>
                             </div>
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }}>
-                                Guardar Inmueble
-                            </button>
                         </form>
                     </div>
                 </div>

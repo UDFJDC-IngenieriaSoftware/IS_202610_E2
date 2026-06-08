@@ -57,7 +57,7 @@ describe('RF-17 & RF-18: Gestión de Abonos', () => {
             .send({ monto_pagado: 700 }); // Saldo es 600
         
         expect(response.statusCode).toBe(400);
-        expect(response.body.mensaje).toContain('Sobrepago no permitido');
+        expect(response.body.mensaje).toContain('Monto inválido o superior al saldo');
     });
 
     test('Debería completar el pago al llegar a saldo cero', async () => {
@@ -89,7 +89,7 @@ describe('RF-17 & RF-18: Gestión de Abonos', () => {
             .set('Authorization', `Bearer ${tokenProp}`);
         
         expect(response.statusCode).toBe(200);
-        expect(response.body.titulo).toBe('COMPROBANTE DE ABONO');
+        expect(response.body.titulo).toBe('COMPROBANTE DE PAGO');
         expect(parseFloat(response.body.monto_pagado)).toBeDefined();
         expect(parseFloat(response.body.saldo_restante)).toBeDefined();
     });

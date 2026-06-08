@@ -4,31 +4,29 @@ const Contrato = require('../models/Contrato');
 const Inmueble = require('../models/Inmueble');
 const Abono = require('../models/Abono');
 
-// Obtener todos los pagos
+// Obtener todos los pagos (Filtrados por propiedad/perfil)
 const obtenerTodos = async (req, res) => {
     try {
         const { rol, id_perfil } = req.usuario;
-        let whereContrato = {};
-        let whereInmueble = {};
-
-        if (rol === 'propietario') {
-            whereInmueble.id_propietario = id_perfil;
-        } else if (rol === 'inquilino') {
-            whereContrato.id_inquilino = id_perfil;
-        }
-
-        const pagos = await Pago.findAll({
+        
+        const filter = {
             include: [{ 
                 model: Contrato,
                 required: true,
-                where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
                 include: [{
                     model: Inmueble,
-                    required: true,
-                    where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined
+                    required: true
                 }]
             }]
-        });
+        };
+
+        if (rol === 'propietario') {
+            filter.include[0].include[0].where = { id_propietario: id_perfil };
+        } else if (rol === 'inquilino') {
+            filter.include[0].where = { id_inquilino: id_perfil };
+        }
+
+        const pagos = await Pago.findAll(filter);
         res.json(pagos);
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener pagos', error: error.message });
@@ -106,7 +104,10 @@ const registrarPago = async (req, res) => {
         const nuevoSaldo = parseFloat(pago.saldo_pendiente) - parseFloat(monto_pagado);
         const nuevoAbono = await Abono.create({ id_pago: pago.id_pago, monto: monto_pagado, tipo_transaccion, observaciones, saldo_restante_momento: nuevoSaldo }, { transaction: t });
 
-        let nuevoEstado = nuevoSaldo === 0 ? 2 : (pago.estado === 1 ? 4 : pago.estado);
+        // Reglas de transición de estados (RF-17)
+        let nuevoEstado = nuevoSaldo === 0 ? 2 : (pago.estado === 3 ? 3 : 4); 
+        // 2 = Pagado, 3 = En Mora (se mantiene si ya estaba en mora), 4 = Pago Parcial
+        
         await pago.update({ fecha_pago: new Date(), saldo_pendiente: nuevoSaldo, estado: nuevoEstado, tipo_transaccion, observaciones }, { transaction: t });
         
         await t.commit();
@@ -118,30 +119,35 @@ const registrarPago = async (req, res) => {
 const obtenerHistorialGlobalAbonos = async (req, res) => {
     try {
         const { rol, id_perfil } = req.usuario;
-        let whereContrato = {};
-        let whereInmueble = {};
-
-        if (rol === 'propietario') whereInmueble.id_propietario = id_perfil;
-        else if (rol === 'inquilino') whereContrato.id_inquilino = id_perfil;
-
-        const abonos = await Abono.findAll({
+        
+        const filter = {
             include: [{
                 model: Pago,
                 required: true,
                 include: [{
                     model: Contrato,
                     required: true,
-                    where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined,
-                    include: [{ model: Inmueble, required: true, where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined }]
+                    include: [{
+                        model: Inmueble,
+                        required: true
+                    }]
                 }]
             }],
             order: [['fecha_abono', 'DESC']]
-        });
+        };
+
+        if (rol === 'propietario') {
+            filter.include[0].include[0].include[0].where = { id_propietario: id_perfil };
+        } else if (rol === 'inquilino') {
+            filter.include[0].include[0].where = { id_inquilino: id_perfil };
+        }
+
+        const abonos = await Abono.findAll(filter);
         res.json(abonos);
     } catch (error) { res.status(500).json({ mensaje: 'Error al obtener historial global', error: error.message }); }
 };
 
-// Generar comprobante abono
+// Generar comprobante abono - RF-18
 const generarComprobanteAbono = async (req, res) => {
     try {
         const { id_abono } = req.params;
@@ -153,13 +159,18 @@ const generarComprobanteAbono = async (req, res) => {
             return res.status(403).json({ mensaje: 'No autorizado' });
         }
 
+        // Identificador de tipo de pago (RF-18)
+        const tipoComprobante = parseFloat(abono.saldo_restante_momento) === 0 ? 'Pago Total' : 'Abono Parcial';
+
         res.json({
-            titulo: 'COMPROBANTE DE ABONO',
+            titulo: 'COMPROBANTE DE PAGO',
+            tipo_comprobante: tipoComprobante,
             id_transaccion: abono.id_abono,
             fecha_hora: abono.fecha_abono,
             monto_pagado: abono.monto,
             saldo_restante: abono.saldo_restante_momento,
-            inmueble: abono.Pago.Contrato.Inmueble.direccion
+            inmueble: abono.Pago.Contrato.Inmueble.direccion,
+            concepto: 'Canon de arrendamiento'
         });
     } catch (error) { res.status(500).json({ mensaje: 'Error al generar comprobante', error: error.message }); }
 };
@@ -168,15 +179,27 @@ const generarComprobanteAbono = async (req, res) => {
 const obtenerPendientes = async (req, res) => {
     try {
         const { rol, id_perfil } = req.usuario;
-        let whereContrato = {}; let whereInmueble = {};
-        if (rol === 'propietario') whereInmueble.id_propietario = id_perfil;
-        else if (rol === 'inquilino') whereContrato.id_inquilino = id_perfil;
-
-        const pagos = await Pago.findAll({
+        
+        const filter = {
             where: { estado: { [Op.in]: [1, 4] } },
-            include: [{ model: Contrato, required: true, where: Object.keys(whereContrato).length > 0 ? whereContrato : undefined, include: [{ model: Inmueble, required: true, where: Object.keys(whereInmueble).length > 0 ? whereInmueble : undefined }] }],
+            include: [{ 
+                model: Contrato,
+                required: true,
+                include: [{
+                    model: Inmueble,
+                    required: true
+                }]
+            }],
             order: [['mes_correspondiente', 'ASC']]
-        });
+        };
+
+        if (rol === 'propietario') {
+            filter.include[0].include[0].where = { id_propietario: id_perfil };
+        } else if (rol === 'inquilino') {
+            filter.include[0].where = { id_inquilino: id_perfil };
+        }
+
+        const pagos = await Pago.findAll(filter);
         res.json(pagos);
     } catch (error) { res.status(500).json({ mensaje: 'Error al obtener pagos pendientes', error: error.message }); }
 };
@@ -202,7 +225,7 @@ const generarRecibo = async (req, res) => {
         if (!pago) return res.status(404).json({ mensaje: 'No encontrado' });
         if (pago.Contrato.Inmueble.id_propietario !== id_perfil && pago.Contrato.id_inquilino !== id_perfil) return res.status(403).json({ mensaje: 'No autorizado' });
         res.json({ numero_recibo: `REC-${pago.id_pago}`, cliente: pago.Contrato.id_inquilino, monto_total: pago.monto_total, saldo_pendiente: pago.saldo_pendiente, estado: pago.estado, inmueble: pago.Contrato.Inmueble.direccion });
-    } catch (error) { res.status(500).json({ mensaje: 'Error al generar recibo', error: error.message }); }
+    } catch (error) { res.status(500).json({ mensaje: 'Error', error: error.message }); }
 };
 
 const obtenerAbonos = async (req, res) => {

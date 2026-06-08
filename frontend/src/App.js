@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Inmuebles from "./pages/Inmuebles";
 import Contratos from "./pages/Contratos";
 import Pagos from "./pages/Pagos";
+import Comprobantes from "./pages/Comprobantes";
 import "./App.css";
 
 function App() {
@@ -50,6 +51,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Pagos />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/comprobantes" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Comprobantes />
               </Layout>
             </ProtectedRoute>
           } 

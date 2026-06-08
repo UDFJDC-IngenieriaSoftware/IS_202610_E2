@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Home, FileText, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Home, FileText, CreditCard, LogOut, Receipt } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const navigate = useNavigate();
@@ -30,6 +30,9 @@ const Layout = ({ children }) => {
                     </NavLink>
                     <NavLink to="/pagos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                         <CreditCard size={20} /> Pagos
+                    </NavLink>
+                    <NavLink to="/comprobantes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                        <Receipt size={20} /> Comprobantes
                     </NavLink>
                 </nav>
                 <div style={{ marginTop: 'auto' }}>
