@@ -3,6 +3,8 @@ import api from '../services/api';
 import { CreditCard, CheckCircle, Clock, AlertTriangle, Download, History, X, Receipt } from 'lucide-react';
 
 const Pagos = () => {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    const esPropietario = usuario.rol === 'propietario';
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filtro, setFiltro] = useState('');
@@ -180,10 +182,10 @@ const Pagos = () => {
                                     </td>
                                     <td style={{ padding: '1rem' }}>
                                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                            {pago.estado !== 2 && (
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    onClick={() => { setSelectedPago(pago); setShowPayModal(true); }} 
+                                            {esPropietario && pago.estado !== 2 && (
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => { setSelectedPago(pago); setShowPayModal(true); }}
                                                     style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
                                                 >
                                                     Registrar Pago

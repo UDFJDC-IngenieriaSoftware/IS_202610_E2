@@ -3,6 +3,8 @@ import api from '../services/api';
 import { FileText, Plus, ExternalLink, X, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Contratos = () => {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    const esPropietario = usuario.rol === 'propietario';
     const [contratos, setContratos] = useState([]);
     const [inmuebles, setInmuebles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -140,11 +142,20 @@ const Contratos = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h3>Contratos de Arrendamiento</h3>
-                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {showForm ? <X size={18} /> : <Plus size={18} />}
-                    {showForm ? 'Cancelar' : 'Nuevo Contrato'}
-                </button>
+                <div>
+                    <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>
+                        {esPropietario ? 'Contratos de Arrendamiento' : 'Mi Contrato'}
+                    </h2>
+                    <p style={{ color: '#64748b' }}>
+                        {esPropietario ? 'Gestiona los contratos de tus inmuebles.' : 'Consulta tu contrato vigente.'}
+                    </p>
+                </div>
+                {esPropietario && (
+                    <button className="btn btn-primary" onClick={() => setShowForm(!showForm)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {showForm ? <X size={18} /> : <Plus size={18} />}
+                        {showForm ? 'Cancelar' : 'Nuevo Contrato'}
+                    </button>
+                )}
             </div>
 
             {showForm && (
@@ -282,7 +293,7 @@ const Contratos = () => {
                                                 <ExternalLink size={18} />
                                             </a>
                                         )}
-                                        {contrato.estado === 1 && (
+                                        {esPropietario && contrato.estado === 1 && (
                                             <button
                                                 title="Finalizar contrato"
                                                 onClick={async () => {
