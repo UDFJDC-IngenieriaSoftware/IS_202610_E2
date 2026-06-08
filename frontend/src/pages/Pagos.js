@@ -5,6 +5,7 @@ import { CreditCard, CheckCircle, Clock, AlertTriangle, Download, History, X, Re
 const Pagos = () => {
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filtro, setFiltro] = useState('');
     const [selectedPago, setSelectedPago] = useState(null);
     const [abonos, setAbonos] = useState([]);
     const [showAbonosModal, setShowAbonosModal] = useState(false);
@@ -65,12 +66,38 @@ const Pagos = () => {
 
     if (loading) return <div className="loading">Cargando gestión financiera...</div>;
 
+    const pagosFiltrados = pagos.filter(p => {
+        if (!filtro) return true;
+        const q = filtro.toLowerCase();
+        const direccion = p.Contrato?.Inmueble?.direccion?.toLowerCase() || '';
+        const inquilino = (p.Contrato?.id_inquilino || '').toLowerCase();
+        const contrato = String(p.id_contrato);
+        return direccion.includes(q) || inquilino.includes(q) || contrato.includes(q);
+    });
+
     return (
         <div className="fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
                     <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b' }}>Gestión de Pagos</h2>
                     <p style={{ color: '#64748b' }}>Control de cánones de arrendamiento y abonos.</p>
+                </div>
+            </div>
+
+            {/* Barra de filtro */}
+            <div className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '1rem' }}>🔍</span>
+                    <input
+                        type="text"
+                        placeholder="Buscar por dirección, cédula del arrendatario o # contrato..."
+                        value={filtro}
+                        onChange={e => setFiltro(e.target.value)}
+                        style={{ border: 'none', outline: 'none', flex: 1, fontSize: '0.95rem', background: 'transparent' }}
+                    />
+                    {filtro && (
+                        <button onClick={() => setFiltro('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                    )}
                 </div>
             </div>
 
@@ -79,22 +106,32 @@ const Pagos = () => {
                     <thead style={{ background: '#f8fafc' }}>
                         <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
                             <th style={{ padding: '1rem' }}>Mes de Cobro</th>
-                            <th style={{ padding: '1rem' }}>Contrato</th>
+                            <th style={{ padding: '1rem' }}>Inmueble</th>
+                            <th style={{ padding: '1rem' }}>Arrendatario</th>
                             <th style={{ padding: '1rem' }}>Monto Total</th>
-                            <th style={{ padding: '1rem' }}>Saldo Pendiente</th>
+                            <th style={{ padding: '1rem' }}>Saldo</th>
                             <th style={{ padding: '1rem' }}>Estado</th>
                             <th style={{ padding: '1rem' }}>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {pagos.map(pago => {
+                        {pagosFiltrados.length === 0 && (
+                            <tr><td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No se encontraron resultados.</td></tr>
+                        )}
+                        {pagosFiltrados.map(pago => {
                             const status = getStatusInfo(pago.estado);
                             return (
                                 <tr key={pago.id_pago} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                     <td style={{ padding: '1rem', fontWeight: '500' }}>
                                         {new Date(pago.mes_correspondiente).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                     </td>
-                                    <td style={{ padding: '1rem', color: '#64748b' }}>#{pago.id_contrato}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <div style={{ fontWeight: '500', fontSize: '0.875rem' }}>{pago.Contrato?.Inmueble?.direccion || `#${pago.id_contrato}`}</div>
+                                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{pago.Contrato?.Inmueble?.municipio}</div>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.875rem' }}>
+                                        {pago.Contrato?.id_inquilino || '--'}
+                                    </td>
                                     <td style={{ padding: '1rem' }}>${parseFloat(pago.monto_total).toLocaleString()}</td>
                                     <td style={{ padding: '1rem', color: parseFloat(pago.saldo_pendiente) > 0 ? '#ef4444' : '#10b981', fontWeight: '600' }}>
                                         ${parseFloat(pago.saldo_pendiente).toLocaleString()}
