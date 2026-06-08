@@ -18,8 +18,11 @@ const Layout = ({ children }) => {
             <aside className="sidebar">
                 {/* Branding */}
                 <div style={{ marginBottom: '2rem' }}>
-                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
-                        Arriendos360
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                        <img src="/Logo.png" alt="Arriendos360" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                        <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
+                            Arriendos360
+                        </div>
                     </div>
                     <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: '0.4rem',

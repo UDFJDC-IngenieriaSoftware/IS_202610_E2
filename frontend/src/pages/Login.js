@@ -70,8 +70,9 @@ const Login = () => {
                 justifyContent: 'center', padding: '3rem',
                 color: '#fff', display: window.innerWidth < 768 ? 'none' : 'flex'
             }}>
-                <div style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1rem' }}>
-                    🏠 Arriendos360
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <img src="/Logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '2rem', fontWeight: '800' }}>Arriendos360</span>
                 </div>
                 <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2rem', lineHeight: 1.6 }}>
                     Gestiona tus arrendamientos de forma inteligente y sin complicaciones.
