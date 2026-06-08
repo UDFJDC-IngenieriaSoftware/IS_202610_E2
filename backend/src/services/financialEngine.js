@@ -52,14 +52,15 @@ const procesarContratos = async () => {
             const fechaInicio = new Date(contrato.fecha_inicio);
             if (fechaInicio.getDate() === diaCorte) {
                 // Verificar si ya se generó el recibo para este mes/año
-                const mesActual = pasadoManana.getMonth() + 1; // EXTRACT retorna 1-12
+                const mesIdx  = pasadoManana.getMonth();     // 0-indexed (5 = junio)
+                const mesSQL  = mesIdx + 1;                  // 1-indexed para date_part (6 = junio)
                 const anioActual = pasadoManana.getFullYear();
-                
+
                 const yaExiste = await Pago.findOne({
                     where: {
                         id_contrato: contrato.id_contrato,
                         [Op.and]: [
-                            sequelize.where(sequelize.fn('date_part', 'month', sequelize.col('mes_correspondiente')), mesActual),
+                            sequelize.where(sequelize.fn('date_part', 'month', sequelize.col('mes_correspondiente')), mesSQL),
                             sequelize.where(sequelize.fn('date_part', 'year', sequelize.col('mes_correspondiente')), anioActual)
                         ]
                     }
@@ -70,7 +71,7 @@ const procesarContratos = async () => {
                         id_contrato: contrato.id_contrato,
                         monto_total: contrato.valor_mensual,
                         saldo_pendiente: contrato.valor_mensual,
-                        mes_correspondiente: new Date(anioActual, mesActual, diaCorte),
+                        mes_correspondiente: new Date(anioActual, mesIdx, diaCorte), // mesIdx 0-indexed → junio correcto
                         estado: 1 // Pendiente
                     });
 
