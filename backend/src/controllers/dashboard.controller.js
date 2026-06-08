@@ -17,9 +17,11 @@ const obtenerIngresos = async (req, res) => {
             include: [{
                 model: Contrato,
                 attributes: [],
+                required: true,
                 include: [{
                     model: Inmueble,
                     attributes: [],
+                    required: true,
                     where: { id_propietario: id_perfil }
                 }]
             }],
@@ -110,9 +112,11 @@ const obtenerResumen = async (req, res) => {
             include: [{
                 model: Contrato,
                 attributes: [],
+                required: true,
                 include: [{
                     model: Inmueble,
                     attributes: [],
+                    required: true,
                     where: { id_propietario: id_perfil }
                 }]
             }],
