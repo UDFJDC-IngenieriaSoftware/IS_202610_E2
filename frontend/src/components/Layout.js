@@ -16,11 +16,30 @@ const Layout = ({ children }) => {
     return (
         <div className="app-container">
             <aside className="sidebar">
-                <div style={{ marginBottom: '0.25rem', fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb' }}>
-                    Arriendos360
-                </div>
-                <div style={{ marginBottom: '1.5rem', fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {esPropietario ? '🏠 Propietario' : '👤 Inquilino'}
+                {/* Branding */}
+                <div style={{ marginBottom: '2rem' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
+                        Arriendos360
+                    </div>
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                        background: esPropietario ? 'rgba(37,99,235,0.25)' : 'rgba(124,58,237,0.25)',
+                        border: `1px solid ${esPropietario ? 'rgba(96,165,250,0.3)' : 'rgba(167,139,250,0.3)'}`,
+                        borderRadius: '999px',
+                        padding: '0.25rem 0.75rem',
+                    }}>
+                        <div style={{
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            background: esPropietario ? '#60a5fa' : '#a78bfa'
+                        }} />
+                        <span style={{
+                            fontSize: '0.72rem', fontWeight: '600', letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            color: esPropietario ? '#93c5fd' : '#c4b5fd'
+                        }}>
+                            {esPropietario ? 'Propietario' : 'Inquilino'}
+                        </span>
+                    </div>
                 </div>
 
                 <nav>
