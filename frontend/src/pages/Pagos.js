@@ -6,6 +6,7 @@ const Pagos = () => {
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filtro, setFiltro] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState('todos');
     const [selectedPago, setSelectedPago] = useState(null);
     const [abonos, setAbonos] = useState([]);
     const [showAbonosModal, setShowAbonosModal] = useState(false);
@@ -67,12 +68,19 @@ const Pagos = () => {
     if (loading) return <div className="loading">Cargando gestión financiera...</div>;
 
     const pagosFiltrados = pagos.filter(p => {
-        if (!filtro) return true;
-        const q = filtro.toLowerCase();
-        const direccion = p.Contrato?.Inmueble?.direccion?.toLowerCase() || '';
-        const inquilino = (p.Contrato?.id_inquilino || '').toLowerCase();
-        const contrato = String(p.id_contrato);
-        return direccion.includes(q) || inquilino.includes(q) || contrato.includes(q);
+        const matchTexto = !filtro || (() => {
+            const q = filtro.toLowerCase();
+            const direccion = p.Contrato?.Inmueble?.direccion?.toLowerCase() || '';
+            const inquilino = (p.Contrato?.id_inquilino || '').toLowerCase();
+            const contrato = String(p.id_contrato);
+            return direccion.includes(q) || inquilino.includes(q) || contrato.includes(q);
+        })();
+        const matchEstado = filtroEstado === 'todos'
+            || (filtroEstado === 'pendiente' && p.estado === 1)
+            || (filtroEstado === 'pagado'    && p.estado === 2)
+            || (filtroEstado === 'mora'      && p.estado === 3)
+            || (filtroEstado === 'parcial'   && p.estado === 4);
+        return matchTexto && matchEstado;
     });
 
     return (
@@ -84,20 +92,57 @@ const Pagos = () => {
                 </div>
             </div>
 
-            {/* Barra de filtro */}
-            <div className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '1rem' }}>🔍</span>
-                    <input
-                        type="text"
-                        placeholder="Buscar por dirección, cédula del arrendatario o # contrato..."
-                        value={filtro}
-                        onChange={e => setFiltro(e.target.value)}
-                        style={{ border: 'none', outline: 'none', flex: 1, fontSize: '0.95rem', background: 'transparent' }}
-                    />
-                    {filtro && (
-                        <button onClick={() => setFiltro('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
-                    )}
+            {/* Filtros */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Búsqueda por texto */}
+                <div className="card" style={{ flex: 1, minWidth: '250px', padding: '0.75rem 1rem', margin: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ color: '#94a3b8' }}>🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar por dirección, cédula o # contrato..."
+                            value={filtro}
+                            onChange={e => setFiltro(e.target.value)}
+                            style={{ border: 'none', outline: 'none', flex: 1, fontSize: '0.9rem', background: 'transparent' }}
+                        />
+                        {filtro && <button onClick={() => setFiltro('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}>✕</button>}
+                    </div>
+                </div>
+
+                {/* Tabs de estado */}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {[
+                        { key: 'todos',     label: 'Todos',      color: '#475569', bg: '#f1f5f9' },
+                        { key: 'pendiente', label: 'Pendientes', color: '#854d0e', bg: '#fef9c3' },
+                        { key: 'pagado',    label: 'Pagados',    color: '#166534', bg: '#dcfce7' },
+                        { key: 'mora',      label: 'En Mora',    color: '#991b1b', bg: '#fee2e2' },
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setFiltroEstado(tab.key)}
+                            style={{
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '999px',
+                                border: filtroEstado === tab.key ? `2px solid ${tab.color}` : '2px solid transparent',
+                                background: filtroEstado === tab.key ? tab.bg : '#f8fafc',
+                                color: filtroEstado === tab.key ? tab.color : '#64748b',
+                                fontWeight: filtroEstado === tab.key ? '600' : '400',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                transition: 'all 0.15s'
+                            }}
+                        >
+                            {tab.label}
+                            <span style={{ marginLeft: '0.35rem', fontSize: '0.75rem' }}>
+                                ({pagos.filter(p =>
+                                    tab.key === 'todos' ? true :
+                                    tab.key === 'pendiente' ? p.estado === 1 :
+                                    tab.key === 'pagado'    ? p.estado === 2 :
+                                    p.estado === 3
+                                ).length})
+                            </span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
