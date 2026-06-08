@@ -38,9 +38,6 @@ const Layout = ({ children }) => {
                             <NavLink to="/pagos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                                 <CreditCard size={20} /> Pagos
                             </NavLink>
-                            <NavLink to="/comprobantes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                                <Receipt size={20} /> Comprobantes
-                            </NavLink>
                         </>
                     ) : (
                         <>
@@ -49,9 +46,6 @@ const Layout = ({ children }) => {
                             </NavLink>
                             <NavLink to="/pagos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                                 <CreditCard size={20} /> Mis Pagos
-                            </NavLink>
-                            <NavLink to="/comprobantes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                                <Receipt size={20} /> Mis Comprobantes
                             </NavLink>
                         </>
                     )}
