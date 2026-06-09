@@ -217,12 +217,16 @@ const Pagos = () => {
                                                             ⏳ Pendiente
                                                         </span>
                                                     )}
-                                                    <button className="btn-icon-subtle" title="Ver abonos" onClick={() => { setSelectedPago(pago); fetchAbonos(pago.id_pago); }}>
-                                                        <History size={16} />
-                                                    </button>
-                                                    <button className="btn-icon-subtle" title="Recibo" onClick={() => window.open(`http://localhost:3001/api/pagos/${pago.id_pago}/recibo?token=${localStorage.getItem('token')}`)}>
-                                                        <Download size={16} />
-                                                    </button>
+                                                    {parseFloat(pago.saldo_pendiente) < parseFloat(pago.monto_total) && (
+                                                        <>
+                                                            <button className="btn-icon-subtle" title="Ver abonos" onClick={() => { setSelectedPago(pago); fetchAbonos(pago.id_pago); }}>
+                                                                <History size={16} />
+                                                            </button>
+                                                            <button className="btn-icon-subtle" title="Recibo" onClick={() => window.open(`http://localhost:3001/api/pagos/${pago.id_pago}/recibo?token=${localStorage.getItem('token')}`)}>
+                                                                <Download size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

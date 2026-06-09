@@ -258,7 +258,7 @@ const generarRecibo = async (req, res) => {
 
             numero_comprobante: `REC-${pago.id_pago}`,
             fecha_expedicion: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
-            estado_pago: { 1: 'PENDIENTE', 2: 'PAGADO', 3: 'EN MORA', 4: 'PARCIAL' }[pago.estado],
+            estado_pago: { 1: 'PENDIENTE', 2: 'PAGADO', 3: 'EN MORA', 4: 'PAGO PARCIAL' }[pago.estado],
             nombre_arrendatario: `${tenant.Usuario.nombres} ${tenant.Usuario.apellidos}`,
             cedula_arrendatario: tenant.id_inquilino,
             telefono_arrendatario: tenant.Usuario.telefono || 'No registrado',
