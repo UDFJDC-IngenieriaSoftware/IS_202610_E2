@@ -1,8 +1,7 @@
 const { Sequelize, Op } = require('sequelize');
-const Pago = require('../models/Pago');
-const Contrato = require('../models/Contrato');
-const Inmueble = require('../models/Inmueble');
-const Abono = require('../models/Abono');
+const { Pago, Contrato, Inmueble, Abono, Inquilino, Propietario, Usuario } = require('../models');
+const { generarPDFComprobante } = require('../services/pdfService');
+const PDFDocument = require('pdfkit');
 
 // Obtener todos los pagos (Filtrados por propiedad/perfil)
 const obtenerTodos = async (req, res) => {
@@ -94,7 +93,7 @@ const registrarPago = async (req, res) => {
         if (!pago) { await t.rollback(); return res.status(404).json({ mensaje: 'Pago no encontrado' }); }
 
         if (parseFloat(monto_pagado) <= 0 || parseFloat(monto_pagado) > parseFloat(pago.saldo_pendiente)) {
-            await t.rollback(); return res.status(400).json({ mensaje: 'Sobrepago no permitido. Monto inválido o superior al saldo' });
+            await t.rollback(); return res.status(400).json({ mensaje: 'Monto inválido o superior al saldo' });
         }
 
         const esDuenio = pago.Contrato.Inmueble.id_propietario === id_perfil;
@@ -104,10 +103,7 @@ const registrarPago = async (req, res) => {
         const nuevoSaldo = parseFloat(pago.saldo_pendiente) - parseFloat(monto_pagado);
         const nuevoAbono = await Abono.create({ id_pago: pago.id_pago, monto: monto_pagado, tipo_transaccion, observaciones, saldo_restante_momento: nuevoSaldo }, { transaction: t });
 
-        // Reglas de transición de estados (RF-17)
         let nuevoEstado = nuevoSaldo === 0 ? 2 : (pago.estado === 3 ? 3 : 4); 
-        // 2 = Pagado, 3 = En Mora (se mantiene si ya estaba en mora), 4 = Pago Parcial
-        
         await pago.update({ fecha_pago: new Date(), saldo_pendiente: nuevoSaldo, estado: nuevoEstado, tipo_transaccion, observaciones }, { transaction: t });
         
         await t.commit();
@@ -147,61 +143,166 @@ const obtenerHistorialGlobalAbonos = async (req, res) => {
     } catch (error) { res.status(500).json({ mensaje: 'Error al obtener historial global', error: error.message }); }
 };
 
-// Generar comprobante abono - RF-18
+// Formateador de moneda
+const fmt = (v) => `$ ${parseFloat(v || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}`;
+
+// Formateador de periodo (Ej: Junio 2026)
+const fmtPeriodo = (date) => new Date(date).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase());
+
+// Generar comprobante abono - RF-18 (Versión PDF Estilizada)
 const generarComprobanteAbono = async (req, res) => {
     try {
         const { id_abono } = req.params;
         const { id_perfil } = req.usuario;
-        const abono = await Abono.findByPk(id_abono, { include: [{ model: Pago, include: [{ model: Contrato, include: [Inmueble] }] }] });
+
+        const abono = await Abono.findByPk(id_abono, {
+            include: [{
+                model: Pago,
+                include: [{
+                    model: Contrato,
+                    include: [
+                        { model: Inmueble, include: [{ model: Propietario, include: [Usuario] }] },
+                        { model: Inquilino, include: [Usuario] }
+                    ]
+                }]
+            }]
+        });
+
         if (!abono) return res.status(404).json({ mensaje: 'No encontrado' });
 
-        if (abono.Pago.Contrato.Inmueble.id_propietario !== id_perfil && abono.Pago.Contrato.id_inquilino !== id_perfil) {
+        const owner = abono.Pago.Contrato.Inmueble.Propietario;
+        const tenant = abono.Pago.Contrato.Inquilino;
+
+        if (owner.id_propietario !== id_perfil && tenant.id_inquilino !== id_perfil) {
             return res.status(403).json({ mensaje: 'No autorizado' });
         }
 
-        // Identificador de tipo de pago (RF-18)
-        const tipoComprobante = parseFloat(abono.saldo_restante_momento) === 0 ? 'Pago Total' : 'Abono Parcial';
+        const esTotal = parseFloat(abono.saldo_restante_momento) === 0;
+        const periodo = fmtPeriodo(abono.Pago.mes_correspondiente);
 
-        res.json({
-            titulo: 'COMPROBANTE DE PAGO',
-            tipo_comprobante: tipoComprobante,
-            id_transaccion: abono.id_abono,
-            fecha_hora: abono.fecha_abono,
-            monto_pagado: abono.monto,
-            saldo_restante: abono.saldo_restante_momento,
-            inmueble: abono.Pago.Contrato.Inmueble.direccion,
-            concepto: 'Canon de arrendamiento'
-        });
-    } catch (error) { res.status(500).json({ mensaje: 'Error al generar comprobante', error: error.message }); }
+        const data = {
+            empresa_nombre: "ARRIENDOS 360 S.A.S",
+            empresa_nit: "900.123.456-7",
+            empresa_telefono: "+57 (601) 321 0000",
+            empresa_email: "soporte@arriendos360.com",
+            empresa_ciudad: "Bogotá D.C.",
+            
+            numero_comprobante: `TRX-${abono.id_abono}`,
+            fecha_expedicion: new Date(abono.fecha_abono).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+            estado_pago: esTotal ? 'PAGADO' : 'ABONO PARCIAL',
+            nombre_arrendatario: `${tenant.Usuario.nombres} ${tenant.Usuario.apellidos}`,
+            cedula_arrendatario: tenant.id_inquilino,
+            telefono_arrendatario: tenant.Usuario.telefono || 'No registrado',
+            email_arrendatario: tenant.Usuario.correo,
+            direccion_inmueble: abono.Pago.Contrato.Inmueble.direccion,
+            barrio_ciudad: `${abono.Pago.Contrato.Inmueble.barrio}, ${abono.Pago.Contrato.Inmueble.municipio}`,
+            tipo_inmueble: abono.Pago.Contrato.Inmueble.tipo_inmueble,
+            periodo: periodo,
+            concepto: esTotal ? `Pago de arriendo periodo ${periodo}` : `Abono arriendo periodo ${periodo}`,
+            canon_mensual: fmt(abono.Pago.monto_total),
+            valor_pagado: fmt(abono.monto),
+            saldo_anterior: fmt(parseFloat(abono.saldo_restante_momento) + parseFloat(abono.monto)),
+            saldo_pendiente: fmt(abono.saldo_restante_momento),
+            forma_pago: abono.tipo_transaccion || 'Transferencia Bancaria',
+            banco: 'Red Bancaria Nacional',
+            referencia_pago: abono.observaciones || `Abono No. ${abono.id_abono}`
+        };
+
+        const doc = new PDFDocument({ size: 'LETTER', margin: 0 });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="Comprobante_${id_abono}.pdf"`);
+        doc.pipe(res);
+        generarPDFComprobante(doc, data);
+        doc.end();
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error al generar PDF', error: error.message });
+    }
 };
 
-// Restantes métodos
+// Generar recibo de pago mensual base (Resumen del mes)
+const generarRecibo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { id_perfil } = req.usuario;
+        
+        const pago = await Pago.findByPk(id, {
+            include: [{
+                model: Contrato,
+                include: [
+                    { model: Inmueble, include: [{ model: Propietario, include: [Usuario] }] },
+                    { model: Inquilino, include: [Usuario] }
+                ]
+            }]
+        });
+        
+        if (!pago) return res.status(404).json({ mensaje: 'No encontrado' });
+        
+        const owner = pago.Contrato.Inmueble.Propietario;
+        const tenant = pago.Contrato.Inquilino;
+
+        if (owner.id_propietario !== id_perfil && tenant.id_inquilino !== id_perfil) {
+            return res.status(403).json({ mensaje: 'No autorizado' });
+        }
+
+        const esTotal = parseFloat(pago.saldo_pendiente) === 0;
+        const periodo = fmtPeriodo(pago.mes_correspondiente);
+
+        const data = {
+            empresa_nombre: "ARRIENDOS 360 S.A.S",
+            empresa_nit: "900.123.456-7",
+            empresa_telefono: "+57 (601) 321 0000",
+            empresa_email: "soporte@arriendos360.com",
+            empresa_ciudad: "Bogotá D.C.",
+
+            numero_comprobante: `REC-${pago.id_pago}`,
+            fecha_expedicion: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+            estado_pago: { 1: 'PENDIENTE', 2: 'PAGADO', 3: 'EN MORA', 4: 'PARCIAL' }[pago.estado],
+            nombre_arrendatario: `${tenant.Usuario.nombres} ${tenant.Usuario.apellidos}`,
+            cedula_arrendatario: tenant.id_inquilino,
+            telefono_arrendatario: tenant.Usuario.telefono || 'No registrado',
+            email_arrendatario: tenant.Usuario.correo,
+            direccion_inmueble: pago.Contrato.Inmueble.direccion,
+            barrio_ciudad: `${pago.Contrato.Inmueble.barrio}, ${pago.Contrato.Inmueble.municipio}`,
+            tipo_inmueble: pago.Contrato.Inmueble.tipo_inmueble,
+            periodo: periodo,
+            concepto: esTotal ? `Pago de arriendo periodo ${periodo}` : `Abono arriendo periodo ${periodo}`,
+            canon_mensual: fmt(pago.monto_total),
+            valor_pagado: fmt(parseFloat(pago.monto_total) - parseFloat(pago.saldo_pendiente)),
+            saldo_anterior: fmt(pago.monto_total),
+            saldo_pendiente: fmt(pago.saldo_pendiente),
+            forma_pago: pago.tipo_transaccion || 'Múltiple',
+            banco: 'N/A',
+            referencia_pago: `Recibo mensual No. ${pago.id_pago}`
+        };
+
+        const doc = new PDFDocument({ size: 'LETTER', margin: 0 });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="Recibo_Mensual_${id}.pdf"`);
+        doc.pipe(res);
+        generarPDFComprobante(doc, data);
+        doc.end();
+
+    } catch (error) { 
+        res.status(500).json({ mensaje: 'Error al generar PDF', error: error.message }); 
+    }
+};
+
+// ... (Restantes métodos)
 const obtenerPendientes = async (req, res) => {
     try {
         const { rol, id_perfil } = req.usuario;
-        
         const filter = {
             where: { estado: { [Op.in]: [1, 4] } },
-            include: [{ 
-                model: Contrato,
-                required: true,
-                include: [{
-                    model: Inmueble,
-                    required: true
-                }]
-            }],
+            include: [{ model: Contrato, required: true, include: [{ model: Inmueble, required: true }] }],
             order: [['mes_correspondiente', 'ASC']]
         };
-
-        if (rol === 'propietario') {
-            filter.include[0].include[0].where = { id_propietario: id_perfil };
-        } else if (rol === 'inquilino') {
-            filter.include[0].where = { id_inquilino: id_perfil };
-        }
-
+        if (rol === 'propietario') filter.include[0].include[0].where = { id_propietario: id_perfil };
+        else if (rol === 'inquilino') filter.include[0].where = { id_inquilino: id_perfil };
         const pagos = await Pago.findAll(filter);
         res.json(pagos);
-    } catch (error) { res.status(500).json({ mensaje: 'Error al obtener pagos pendientes', error: error.message }); }
+    } catch (error) { res.status(500).json({ mensaje: 'Error', error: error.message }); }
 };
 
 const verificarMora = async (req, res) => {
@@ -214,17 +315,6 @@ const verificarMora = async (req, res) => {
         });
         for (const pago of pagosVencidos) { await pago.update({ estado: 3 }); }
         res.json({ mensaje: 'Mora verificada', pagos_actualizados: pagosVencidos.length });
-    } catch (error) { res.status(500).json({ mensaje: 'Error al verificar mora', error: error.message }); }
-};
-
-const generarRecibo = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { id_perfil } = req.usuario;
-        const pago = await Pago.findByPk(id, { include: [{ model: Contrato, include: [Inmueble] }] });
-        if (!pago) return res.status(404).json({ mensaje: 'No encontrado' });
-        if (pago.Contrato.Inmueble.id_propietario !== id_perfil && pago.Contrato.id_inquilino !== id_perfil) return res.status(403).json({ mensaje: 'No autorizado' });
-        res.json({ numero_recibo: `REC-${pago.id_pago}`, cliente: pago.Contrato.id_inquilino, monto_total: pago.monto_total, saldo_pendiente: pago.saldo_pendiente, estado: pago.estado, inmueble: pago.Contrato.Inmueble.direccion });
     } catch (error) { res.status(500).json({ mensaje: 'Error', error: error.message }); }
 };
 

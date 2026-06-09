@@ -73,7 +73,7 @@ describe('Cobertura Total - Pagos', () => {
         const p = await Pago.findOne();
         const res = await request(app).get(`/api/pagos/${p.id_pago}/recibo`).set('Authorization', `Bearer ${token}`);
         expect(res.statusCode).toBe(200);
-        expect(res.body.numero_recibo).toBeDefined();
+        expect(res.header['content-type']).toBe('application/pdf');
     });
 });
 
