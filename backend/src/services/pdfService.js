@@ -186,7 +186,7 @@ function generarPDFComprobante(doc, data) {
   txt(doc, data.numero_comprobante, MX + 10, y + 19,
     { color: C.darkText, font: 'Helvetica-Bold', size: 9.5, width: z1 - 20 });
 
-  txt(doc, '✔  ' + (data.estado_pago || 'PAGADO'), MX + z1, y + 12,
+  txt(doc, (data.estado_pago || 'PAGADO'), MX + z1, y + 12,
     { color: C.accent, font: 'Helvetica-Bold', size: 10, width: z2, align: 'center' });
 
   txt(doc, 'FECHA', MX + z1 + z2 + 10, y + 7,
