@@ -87,10 +87,9 @@ describe('RF-17 & RF-18: Gestión de Abonos', () => {
         const response = await request(app)
             .get(`/api/pagos/abono/${idAbono}`)
             .set('Authorization', `Bearer ${tokenProp}`);
-        
+
         expect(response.statusCode).toBe(200);
-        expect(response.body.titulo).toBe('COMPROBANTE DE PAGO');
-        expect(parseFloat(response.body.monto_pagado)).toBeDefined();
-        expect(parseFloat(response.body.saldo_restante)).toBeDefined();
+        expect(response.header['content-type']).toBe('application/pdf');
+        expect(response.body instanceof Buffer).toBe(true);
     });
 });

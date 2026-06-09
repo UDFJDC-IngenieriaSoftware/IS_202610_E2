@@ -28,6 +28,12 @@ const Comprobantes = () => {
 
     const totalPagado = abonosFiltrados.reduce((sum, a) => sum + parseFloat(a.monto || 0), 0);
 
+    const formatDate = (dateString, options = { day: 'numeric', month: 'short', year: 'numeric' }) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-CO', { ...options, timeZone: 'UTC' });
+    };
+
     if (loading) return <div className="loading">Cargando comprobantes...</div>;
 
     return (
@@ -114,7 +120,7 @@ const Comprobantes = () => {
                                             </span>
                                             <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                                 <Calendar size={12} />
-                                                {new Date(abono.fecha_abono).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                {formatDate(abono.fecha_abono)}
                                             </span>
                                             <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{abono.tipo_transaccion}</span>
                                         </div>

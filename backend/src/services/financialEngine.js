@@ -26,63 +26,69 @@ const iniciarMotorFinanciero = () => {
 const procesarContratos = async () => {
     try {
         const hoy = new Date();
-        const pasadoManana = new Date();
-        pasadoManana.setDate(hoy.getDate() + 2);
+        // Definimos el rango: hoy y mañana (para detectar cobros que deberían generarse en los próximos 2 días)
+        // O incluso mejor: cualquier aniversario pendiente que sea <= hoy + 2 días.
         
-        const diaCorte = pasadoManana.getDate();
+        const fechaLimite = new Date();
+        fechaLimite.setDate(hoy.getDate() + 2);
         
-        // Buscar contratos activos
         const contratos = await Contrato.findAll({
-            where: {
-                estado: 1 // Activo
-            },
+            where: { estado: 1 },
             include: [
-                { 
-                    model: Inmueble, 
-                    include: [{ model: Propietario, include: [Usuario] }] 
-                },
-                { 
-                    model: Inquilino, 
-                    include: [Usuario] 
-                }
+                { model: Inmueble, include: [{ model: Propietario, include: [Usuario] }] },
+                { model: Inquilino, include: [Usuario] }
             ]
         });
 
         for (const contrato of contratos) {
             const fechaInicio = new Date(contrato.fecha_inicio);
-            if (fechaInicio.getDate() === diaCorte) {
-                // Verificar si ya se generó el recibo para este mes/año
-                const mesIdx  = pasadoManana.getMonth();     // 0-indexed (5 = junio)
-                const mesSQL  = mesIdx + 1;                  // 1-indexed para date_part (6 = junio)
-                const anioActual = pasadoManana.getFullYear();
+            const diaCorte = fechaInicio.getDate();
+            
+            // Determinar el mes y año de la "próxima factura"
+            // Si hoy es 8 y el corte es 10, el mes es el actual.
+            // Si hoy es 28 y el corte es 5, el mes es el siguiente.
+            let fechaObjetivo = new Date(hoy.getFullYear(), hoy.getMonth(), diaCorte);
+            
+            // Si la fecha objetivo ya pasó hace mucho (más de 20 días), probablemente nos referimos al mes siguiente
+            // Si hoy es 25 y el corte es 5, la fechaObjetivo (25, mes, 5) es del pasado.
+            if (hoy.getDate() > diaCorte + 2) {
+                fechaObjetivo.setMonth(fechaObjetivo.getMonth() + 1);
+            }
+
+            // ¿Estamos dentro de la ventana de 2 días antes de la fecha objetivo?
+            // O ¿la fecha objetivo ya llegó/pasó y no se ha cobrado?
+            const diffDias = Math.ceil((fechaObjetivo - hoy) / (1000 * 60 * 60 * 24));
+
+            if (diffDias <= 2) {
+                const mesSQL = fechaObjetivo.getMonth() + 1;
+                const anioSQL = fechaObjetivo.getFullYear();
 
                 const yaExiste = await Pago.findOne({
                     where: {
                         id_contrato: contrato.id_contrato,
                         [Op.and]: [
                             sequelize.where(sequelize.fn('date_part', 'month', sequelize.col('mes_correspondiente')), mesSQL),
-                            sequelize.where(sequelize.fn('date_part', 'year', sequelize.col('mes_correspondiente')), anioActual)
+                            sequelize.where(sequelize.fn('date_part', 'year', sequelize.col('mes_correspondiente')), anioSQL)
                         ]
                     }
                 });
 
                 if (!yaExiste) {
-                    const nuevoPago = await Pago.create({
+                    await Pago.create({
                         id_contrato: contrato.id_contrato,
                         monto_total: contrato.valor_mensual,
                         saldo_pendiente: contrato.valor_mensual,
-                        mes_correspondiente: new Date(anioActual, mesIdx, diaCorte), // mesIdx 0-indexed → junio correcto
+                        mes_correspondiente: fechaObjetivo,
                         estado: 1 // Pendiente
                     });
 
-                    console.log(`✅ Recibo generado automáticamente para contrato ${contrato.id_contrato}`);
+                    console.log(`✅ Recibo generado (Catch-up/Scheduled) para contrato ${contrato.id_contrato} - Periodo: ${mesSQL}/${anioSQL}`);
 
-                    // RF-15: Notificación de Creación (Inquilino)
                     if (contrato.Inquilino && contrato.Inquilino.Usuario) {
                         await enviarCorreo(
                             contrato.Inquilino.Usuario.correo,
                             '🏠 Nuevo recibo de arriendo generado',
-                            `Hola ${contrato.Inquilino.Usuario.nombres}, se ha generado tu recibo de arriendo para el corte del ${diaCorte}. Valor: $${contrato.valor_mensual}.`
+                            `Hola ${contrato.Inquilino.Usuario.nombres}, se ha generado tu recibo de arriendo para el periodo que inicia el ${diaCorte}. Valor: $${contrato.valor_mensual}.`
                         );
                     }
                 }

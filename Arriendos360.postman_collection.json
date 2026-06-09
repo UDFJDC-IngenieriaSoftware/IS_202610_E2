@@ -475,7 +475,7 @@
 								"1"
 							]
 						},
-						"description": "RF-18: Genera un comprobante individual por cada abono registrado."
+						"description": "RF-18: Genera un comprobante en formato PDF por cada abono registrado."
 					}
 				},
 				{

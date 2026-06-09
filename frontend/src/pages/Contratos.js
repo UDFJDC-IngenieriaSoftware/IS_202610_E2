@@ -122,6 +122,13 @@ const Contratos = () => {
         setPdf(null);
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        // Forzamos que la fecha se interprete en UTC para evitar saltos de día por zona horaria
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-CO', { timeZone: 'UTC' });
+    };
+
     if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando datos...</div>;
 
     return (
@@ -276,7 +283,7 @@ const Contratos = () => {
                                     <td style={{ padding: '1rem' }}>{contrato.id_inquilino}</td>
                                     <td style={{ padding: '1rem' }}>
                                         <div style={{ fontSize: '0.9rem' }}>
-                                            {new Date(contrato.fecha_inicio).toLocaleDateString()} - {new Date(contrato.fecha_fin).toLocaleDateString()}
+                                            {formatDate(contrato.fecha_inicio)} - {formatDate(contrato.fecha_fin)}
                                         </div>
                                     </td>
                                     <td style={{ padding: '1rem', fontWeight: '600', color: '#059669' }}>

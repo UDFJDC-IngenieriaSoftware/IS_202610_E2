@@ -8,8 +8,8 @@ import {
 import api from '../services/api';
 import {
     TrendingUp, Home, AlertCircle, FileText,
-    MapPin, ArrowRight, Zap, Calendar, X,
-    ChevronRight, User, CheckCircle, Clock
+    MapPin, ArrowRight, Zap, Calendar,
+    CheckCircle, Clock
 } from 'lucide-react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
@@ -53,13 +53,19 @@ const Dashboard = () => {
         }
     };
 
+    const formatDate = (dateString, options = { month: 'long', year: 'numeric' }) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-CO', { ...options, timeZone: 'UTC' });
+    };
+
     if (loading) return <div className="loading">Cargando dashboard...</div>;
 
     // ── Gráfico barras ──
     const pagosPorMes = {};
     pagos.forEach(p => {
         if (p.estado === 2) {
-            const mes = new Date(p.mes_correspondiente).toLocaleString('es-CO', { month: 'short', year: '2-digit' });
+            const mes = formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' });
             pagosPorMes[mes] = (pagosPorMes[mes] || 0) + parseFloat(p.monto_total || 0);
         }
     });
@@ -182,7 +188,7 @@ const Dashboard = () => {
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                                         <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                            <Calendar size={11} /> {new Date(pago.mes_correspondiente).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}
+                                            <Calendar size={11} /> {formatDate(pago.mes_correspondiente)}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Arrendatario: {pago.Contrato?.id_inquilino || '--'}</span>
                                     </div>
@@ -200,8 +206,6 @@ const Dashboard = () => {
                     })}
                 </div>
             )}
-
-            {/* ── RENT ROLL ── */}
 
             {/* Todo al día */}
             {requierenAtencion.length === 0 && pagos.length > 0 && (

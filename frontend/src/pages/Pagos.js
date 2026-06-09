@@ -39,6 +39,12 @@ const Pagos = () => {
         fetchAll();
     }, []);
 
+    const formatDate = (dateString, options = { month: 'long', year: 'numeric' }) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-CO', { ...options, timeZone: 'UTC' });
+    };
+
     const fetchAbonos = async (id_pago) => {
         try {
             const res = await api.get(`/pagos/${id_pago}/abonos`);
@@ -181,7 +187,7 @@ const Pagos = () => {
                                     return (
                                         <tr key={pago.id_pago}>
                                             <td style={{ fontWeight: '600' }}>
-                                                {new Date(pago.mes_correspondiente).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}
+                                                {formatDate(pago.mes_correspondiente)}
                                             </td>
                                             <td>
                                                 <div style={{ fontWeight: '500', fontSize: '0.875rem' }}>{pago.Contrato?.Inmueble?.direccion || `#${pago.id_contrato}`}</div>
@@ -275,7 +281,7 @@ const Pagos = () => {
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                                     <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><MapPin size={11} />{abono.Pago?.Contrato?.Inmueble?.direccion}</span>
-                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} />{new Date(abono.fecha_abono).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} />{formatDate(abono.fecha_abono, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                     <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{abono.tipo_transaccion}</span>
                                                 </div>
                                             </div>
