@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { FileText, Plus, ExternalLink, X, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, ExternalLink, X, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Contratos = () => {
     const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -30,16 +30,7 @@ const Contratos = () => {
         telefono: ''
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const showNotify = (mensaje, tipo = 'error') => {
-        setToast({ mensaje, tipo });
-        setTimeout(() => setToast(null), 4000);
-    };
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [contratosRes, inmueblesRes] = await Promise.all([
@@ -53,7 +44,11 @@ const Contratos = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

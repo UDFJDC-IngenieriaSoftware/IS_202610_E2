@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -8,8 +8,7 @@ import {
 import api from '../services/api';
 import {
     TrendingUp, Home, AlertCircle, FileText,
-    MapPin, ArrowRight, Zap, Calendar,
-    CheckCircle, Clock
+    MapPin, ArrowRight, Zap, Calendar
 } from 'lucide-react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
@@ -22,7 +21,7 @@ const Dashboard = () => {
     const [ejecutando, setEjecutando] = useState(false);
     const [motorMsg, setMotorMsg]     = useState('');
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [resRes, pagosRes] = await Promise.all([
                 api.get('/dashboard/resumen'),
@@ -35,9 +34,9 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const ejecutarMotor = async () => {
         setEjecutando(true);
