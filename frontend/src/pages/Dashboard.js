@@ -60,19 +60,33 @@ const Dashboard = () => {
 
     if (loading) return <div className="loading">Cargando dashboard...</div>;
 
-    // ── Gráfico barras: Ingresos Reales por Mes de Cobro ──
-    const ultimosPagos = [...pagos]
-        .sort((a, b) => new Date(a.mes_correspondiente) - new Date(b.mes_correspondiente))
-        .slice(-6); // Tomar los últimos 6 meses de facturación
+    // ── Gráfico barras: Ingresos Consolidados por Mes ──
+    const ingresosPorMesMap = {};
+    
+    // 1. Agrupar y sumar por mes
+    pagos.forEach(p => {
+        const mesKey = formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' });
+        const pagado = parseFloat(p.monto_total) - parseFloat(p.saldo_pendiente);
+        ingresosPorMesMap[mesKey] = (ingresosPorMesMap[mesKey] || 0) + (pagado > 0 ? pagado : 0);
+    });
+
+    // 2. Ordenar cronológicamente (usando los datos originales para comparar)
+    const mesesUnicos = [...new Set(pagos.map(p => formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' })))];
+    
+    // Ordenar basándonos en la fecha real del primer pago encontrado para ese label
+    mesesUnicos.sort((a, b) => {
+        const dA = new Date(pagos.find(p => formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' }) === a).mes_correspondiente);
+        const dB = new Date(pagos.find(p => formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' }) === b).mes_correspondiente);
+        return dA - dB;
+    });
+
+    const ultimos6Meses = mesesUnicos.slice(-6);
 
     const barData = {
-        labels: ultimosPagos.map(p => formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' })),
+        labels: ultimos6Meses.length > 0 ? ultimos6Meses : ['Sin datos'],
         datasets: [{ 
-            label: 'Ingresos Recibidos ($)', 
-            data: ultimosPagos.map(p => {
-                const pagado = parseFloat(p.monto_total) - parseFloat(p.saldo_pendiente);
-                return pagado > 0 ? pagado : 0;
-            }), 
+            label: 'Ingresos Totales ($)', 
+            data: ultimos6Meses.map(m => ingresosPorMesMap[m] || 0), 
             backgroundColor: 'rgba(37,99,235,0.75)', 
             borderColor: '#2563eb', 
             borderWidth: 2, 
