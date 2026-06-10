@@ -61,17 +61,27 @@ const Dashboard = () => {
     if (loading) return <div className="loading">Cargando dashboard...</div>;
 
     // ── Gráfico barras ──
+    const pagosSaldados = pagos
+        .filter(p => p.estado === 2)
+        .sort((a, b) => new Date(a.mes_correspondiente) - new Date(b.mes_correspondiente));
+
     const pagosPorMes = {};
-    pagos.forEach(p => {
-        if (p.estado === 2) {
-            const mes = formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' });
-            pagosPorMes[mes] = (pagosPorMes[mes] || 0) + parseFloat(p.monto_total || 0);
-        }
+    pagosSaldados.forEach(p => {
+        const mes = formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' });
+        pagosPorMes[mes] = (pagosPorMes[mes] || 0) + parseFloat(p.monto_total || 0);
     });
-    const meses = Object.keys(pagosPorMes).slice(-6);
+
+    const mesesLabels = Object.keys(pagosPorMes).slice(-6); // Tomar los últimos 6 meses cronológicos
     const barData = {
-        labels: meses.length > 0 ? meses : ['Sin datos'],
-        datasets: [{ label: 'Ingresos ($)', data: meses.map(m => pagosPorMes[m]), backgroundColor: 'rgba(37,99,235,0.75)', borderColor: '#2563eb', borderWidth: 2, borderRadius: 6 }]
+        labels: mesesLabels.length > 0 ? mesesLabels : ['Sin datos'],
+        datasets: [{ 
+            label: 'Ingresos ($)', 
+            data: mesesLabels.map(m => pagosPorMes[m]), 
+            backgroundColor: 'rgba(37,99,235,0.75)', 
+            borderColor: '#2563eb', 
+            borderWidth: 2, 
+            borderRadius: 6 
+        }]
     };
     const barOptions = {
         responsive: true, plugins: { legend: { display: false } },

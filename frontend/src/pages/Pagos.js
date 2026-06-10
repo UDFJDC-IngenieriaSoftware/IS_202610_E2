@@ -28,7 +28,7 @@ const Pagos = () => {
                     api.get('/pagos'),
                     api.get('/pagos/historial-abonos').catch(() => ({ data: [] }))
                 ]);
-                setPagos(pagosRes.data);
+                setPagos(pagosRes.data.sort((a, b) => new Date(b.mes_correspondiente) - new Date(a.mes_correspondiente)));
                 setHistorial(historialRes.data);
             } catch (err) {
                 console.error(err);
