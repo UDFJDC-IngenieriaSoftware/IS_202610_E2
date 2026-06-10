@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: arriendos360_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: arriendos360_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: arriendos360_api
+    restart: always
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=arriendos360_db
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - db
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        REACT_APP_API_URL: /api
+    container_name: arriendos360_ui
+    restart: always
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: arriendos360_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  db_data:
+  uploads_data:
+  caddy_data:
+  caddy_config:

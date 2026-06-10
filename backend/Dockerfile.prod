@@ -1,0 +1,17 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiamos archivos de dependencias
+COPY package*.json ./
+
+# Instalamos solo dependencias de producción
+RUN npm install --omit=dev
+
+# Copiamos el resto del código
+COPY . .
+
+EXPOSE 3001
+
+# Arranque en modo producción (sin nodemon)
+CMD ["node", "src/app.js"]
