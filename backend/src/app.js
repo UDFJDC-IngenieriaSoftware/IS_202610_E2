@@ -25,7 +25,7 @@ app.use('/uploads', express.static('uploads'));
 // Ruta de prueba
 app.get('/', (req, res) => {
     res.json({ 
-        mensaje: '🏠 API Arriendos360 funcionando v1.0.3 - Despliegue Automático OK',
+        mensaje: '🏠 API Arriendos360 funcionando v1.0.4 - Tests Integrados en CI/CD',
         version: '1.0.0',
         endpoints: {
             auth: '/api/auth',
