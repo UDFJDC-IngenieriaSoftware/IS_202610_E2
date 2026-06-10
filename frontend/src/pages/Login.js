@@ -106,7 +106,7 @@ const Login = () => {
                 {/* LOGIN */}
                 {modo === 'login' && (
                     <>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Bienvenido de nuevo</h2>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Bienvenido de nuevo v1.0.1</h2>
                         <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Ingresa tus credenciales para continuar</p>
 
                         {error && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
