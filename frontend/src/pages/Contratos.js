@@ -30,6 +30,11 @@ const Contratos = () => {
         telefono: ''
     });
 
+    const showNotify = useCallback((mensaje, tipo = 'error') => {
+        setToast({ mensaje, tipo });
+        setTimeout(() => setToast(null), 4000);
+    }, []);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -44,7 +49,7 @@ const Contratos = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showNotify]);
 
     useEffect(() => {
         fetchData();
