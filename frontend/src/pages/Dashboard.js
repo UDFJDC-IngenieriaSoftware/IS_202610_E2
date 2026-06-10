@@ -60,23 +60,19 @@ const Dashboard = () => {
 
     if (loading) return <div className="loading">Cargando dashboard...</div>;
 
-    // ── Gráfico barras ──
-    const pagosSaldados = pagos
-        .filter(p => p.estado === 2)
-        .sort((a, b) => new Date(a.mes_correspondiente) - new Date(b.mes_correspondiente));
+    // ── Gráfico barras: Ingresos Reales por Mes de Cobro ──
+    const ultimosPagos = [...pagos]
+        .sort((a, b) => new Date(a.mes_correspondiente) - new Date(b.mes_correspondiente))
+        .slice(-6); // Tomar los últimos 6 meses de facturación
 
-    const pagosPorMes = {};
-    pagosSaldados.forEach(p => {
-        const mes = formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' });
-        pagosPorMes[mes] = (pagosPorMes[mes] || 0) + parseFloat(p.monto_total || 0);
-    });
-
-    const mesesLabels = Object.keys(pagosPorMes).slice(-6); // Tomar los últimos 6 meses cronológicos
     const barData = {
-        labels: mesesLabels.length > 0 ? mesesLabels : ['Sin datos'],
+        labels: ultimosPagos.map(p => formatDate(p.mes_correspondiente, { month: 'short', year: '2-digit' })),
         datasets: [{ 
-            label: 'Ingresos ($)', 
-            data: mesesLabels.map(m => pagosPorMes[m]), 
+            label: 'Ingresos Recibidos ($)', 
+            data: ultimosPagos.map(p => {
+                const pagado = parseFloat(p.monto_total) - parseFloat(p.saldo_pendiente);
+                return pagado > 0 ? pagado : 0;
+            }), 
             backgroundColor: 'rgba(37,99,235,0.75)', 
             borderColor: '#2563eb', 
             borderWidth: 2, 
