@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import api, { SERVER_URL } from '../services/api';
 import { Plus, ExternalLink, X, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Contratos = () => {
@@ -296,7 +296,7 @@ const Contratos = () => {
                                     </td>
                                     {esPropietario && <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                         {contrato.url_pdf && (
-                                            <a href={`http://localhost:3001${contrato.url_pdf}?token=${localStorage.getItem('token')}`} target="_blank" rel="noopener noreferrer" className="btn" style={{ color: '#2563eb', padding: '0.4rem' }}>
+                                            <a href={`${SERVER_URL}${contrato.url_pdf}?token=${localStorage.getItem('token')}`} target="_blank" rel="noopener noreferrer" className="btn" style={{ color: '#2563eb', padding: '0.4rem' }}>
                                                 <ExternalLink size={18} />
                                             </a>
                                         )}

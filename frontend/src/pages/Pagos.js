@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { CheckCircle, Clock, AlertTriangle, Download, History, X, Receipt, Search, Calendar, MapPin } from 'lucide-react';
 
 const Pagos = () => {
@@ -63,7 +63,7 @@ const Pagos = () => {
             setPagos(pagosRes.data);
             setHistorial(histRes.data);
         } catch (err) {
-            alert('Error: ' + (err.response?.data?.mensaje || err.message));
+            alert('Error: ' + (err.response?.data?.mensaje || error.message));
         }
     };
 
@@ -222,7 +222,7 @@ const Pagos = () => {
                                                             <button className="btn-icon-subtle" title="Ver abonos" onClick={() => { setSelectedPago(pago); fetchAbonos(pago.id_pago); }}>
                                                                 <History size={16} />
                                                             </button>
-                                                            <button className="btn-icon-subtle" title="Recibo" onClick={() => window.open(`http://localhost:3001/api/pagos/${pago.id_pago}/recibo?token=${localStorage.getItem('token')}`)}>
+                                                            <button className="btn-icon-subtle" title="Recibo" onClick={() => window.open(`${API_BASE_URL}/pagos/${pago.id_pago}/recibo?token=${localStorage.getItem('token')}`)}>
                                                                 <Download size={16} />
                                                             </button>
                                                         </>
@@ -295,7 +295,7 @@ const Pagos = () => {
                                             </div>
                                         </div>
                                         <div style={{ padding: '0.875rem', display: 'flex', alignItems: 'center', borderLeft: '1px solid #f1f5f9' }}>
-                                            <button onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${abono.id_abono}?token=${localStorage.getItem('token')}`)}
+                                            <button onClick={() => window.open(`${API_BASE_URL}/pagos/abono/${abono.id_abono}?token=${localStorage.getItem('token')}`)}
                                                 style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontWeight: '600', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}>
                                                 <Download size={13} /> Descargar
                                             </button>
@@ -361,7 +361,7 @@ const Pagos = () => {
                                             <p style={{ fontSize: '0.8rem', color: '#64748b' }}>{a.tipo_transaccion}</p>
                                         </div>
                                         <button className="btn-icon-subtle" title="Comprobante"
-                                            onClick={() => window.open(`http://localhost:3001/api/pagos/abono/${a.id_abono}?token=${localStorage.getItem('token')}`)}>
+                                            onClick={() => window.open(`${API_BASE_URL}/pagos/abono/${a.id_abono}?token=${localStorage.getItem('token')}`)}>
                                             <Receipt size={16} />
                                         </button>
                                     </div>
