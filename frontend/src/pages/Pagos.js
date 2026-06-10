@@ -63,7 +63,7 @@ const Pagos = () => {
             setPagos(pagosRes.data);
             setHistorial(histRes.data);
         } catch (err) {
-            alert('Error: ' + (err.response?.data?.mensaje || error.message));
+            alert('Error: ' + (err.response?.data?.mensaje || err.message));
         }
     };
 
